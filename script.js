@@ -3,7 +3,8 @@ const WEATHER_API_KEY = "6569f9193b1871a2521eeb1bb5ffc92a";
 const SPOTIFY_CLIENT_ID = "e7abf7e217d7455b94b584b7ffbb58e8";
 const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
 // =============================
-const CITY = "Kyoto";
+
+// ※ const CITY = "Kyoto"; は削除しました！
 
 const s_part1 = "accounts";
 const s_part2 = "spotify";
@@ -100,20 +101,28 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
     const accessToken = localStorage.getItem("spotify_access_token");
     if (!accessToken) return alert("Spotifyと連携してください");
 
+    // 🌟 今回追加：入力欄から都市名を取得（空欄ならKyotoにする）
+    const inputCity = document.getElementById("cityInput").value.trim() || "Kyoto";
     const safeApiKey = encodeURIComponent(WEATHER_API_KEY.trim());
-    const weatherUrl = BASE_WEATHER_URL + `q=${CITY}&appid=${safeApiKey}&units=metric`;
+    
+    // 入力された都市名を使ってURLを作成
+    const weatherUrl = BASE_WEATHER_URL + `q=${encodeURIComponent(inputCity)}&appid=${safeApiKey}&units=metric`;
 
     try {
         // --- 天気APIの通信 ---
         const weatherResponse = await fetch(weatherUrl);
         const weatherData = await weatherResponse.json();
 
-        if (weatherData.cod && weatherData.cod !== 200) {
+        // 存在しない都市名が入力された場合のエラーハンドリング
+        if (weatherData.cod === "404") {
+            throw new Error(`「${inputCity}」という都市は見つかりませんでした。英語のスペルを確認してみてください。`);
+        } else if (weatherData.cod && weatherData.cod !== 200) {
             throw new Error(`【天気APIエラー】${weatherData.message}`);
         }
 
         const weather = weatherData.weather[0].main; 
-        const temp = Math.round(weatherData.main.temp); // 気温を四捨五入して綺麗に表示
+        const temp = Math.round(weatherData.main.temp);
+        const actualCityName = weatherData.name; // APIから返ってきた正式な都市名
 
         // --- 天気に合わせた「検索キーワード」の決定 ---
         let searchQuery = "feel good pop"; 
@@ -124,6 +133,8 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
             searchQuery = "rainy day jazz cafe"; 
         } else if (weather === "Clouds") {
             searchQuery = "lofi ambient chill"; 
+        } else if (weather === "Snow") {
+            searchQuery = "winter acoustic cozy"; 
         }
 
         const spotifySearchUrl = `https://${s_part4}.${s_part2}.${s_part3}/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=5`;
@@ -139,18 +150,16 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
 
         let htmlContent = `
             <h3 style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">
-                ☁️ 京都の天気: ${weather} (${temp}℃)
+                ☁️ ${actualCityName}の天気: ${weather} (${temp}℃)
             </h3>
             <ul style="list-style: none; padding: 0; margin: 0;">
         `;
 
         if (spotifyData.tracks && spotifyData.tracks.items && spotifyData.tracks.items.length > 0) {
             spotifyData.tracks.items.forEach(track => {
-                // 画像URLとSpotifyリンクを取得
                 const albumImg = track.album.images[0] ? track.album.images[0].url : "";
                 const spotifyLink = track.external_urls.spotify;
                 
-                // リッチなリストデザインを構築
                 htmlContent += `
                     <li style="display: flex; align-items: center; background: rgba(0,0,0,0.3); margin-bottom: 15px; padding: 10px; border-radius: 12px; transition: transform 0.2s;">
                         <img src="${albumImg}" alt="Album Art" style="width: 55px; height: 55px; border-radius: 8px; margin-right: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
