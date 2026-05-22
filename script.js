@@ -4,8 +4,6 @@ const SPOTIFY_CLIENT_ID = "e7abf7e217d7455b94b584b7ffbb58e8";
 const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
 // =============================
 
-// ※ const CITY = "Kyoto"; は削除しました！
-
 const s_part1 = "accounts";
 const s_part2 = "spotify";
 const s_part3 = "com";
@@ -101,19 +99,15 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
     const accessToken = localStorage.getItem("spotify_access_token");
     if (!accessToken) return alert("Spotifyと連携してください");
 
-    // 🌟 今回追加：入力欄から都市名を取得（空欄ならKyotoにする）
     const inputCity = document.getElementById("cityInput").value.trim() || "Kyoto";
     const safeApiKey = encodeURIComponent(WEATHER_API_KEY.trim());
     
-    // 入力された都市名を使ってURLを作成
     const weatherUrl = BASE_WEATHER_URL + `q=${encodeURIComponent(inputCity)}&appid=${safeApiKey}&units=metric`;
 
     try {
-        // --- 天気APIの通信 ---
         const weatherResponse = await fetch(weatherUrl);
         const weatherData = await weatherResponse.json();
 
-        // 存在しない都市名が入力された場合のエラーハンドリング
         if (weatherData.cod === "404") {
             throw new Error(`「${inputCity}」という都市は見つかりませんでした。英語のスペルを確認してみてください。`);
         } else if (weatherData.cod && weatherData.cod !== 200) {
@@ -122,9 +116,8 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
 
         const weather = weatherData.weather[0].main; 
         const temp = Math.round(weatherData.main.temp);
-        const actualCityName = weatherData.name; // APIから返ってきた正式な都市名
+        const actualCityName = weatherData.name;
 
-        // --- 天気に合わせた「検索キーワード」の決定 ---
         let searchQuery = "feel good pop"; 
         
         if (weather === "Clear") {
@@ -144,7 +137,12 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
         });
         const spotifyData = await spotifyResponse.json();
 
+        // 🌟 ここが今回の修正ポイント！期限切れを検知して古い鍵を捨てる
         if (spotifyData.error) {
+            if (spotifyData.error.status === 401 || spotifyData.error.message.includes("expired")) {
+                localStorage.removeItem("spotify_access_token");
+                throw new Error("Spotifyの連携期限（1時間）が切れました。<br>🔄 ブラウザの更新（リロード）ボタンを押して、もう一度「1」から連携し直してください。");
+            }
             throw new Error(`【Spotifyエラー】${spotifyData.error.message}`);
         }
 
