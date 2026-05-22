@@ -5,7 +5,7 @@ const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/"; // 例: h
 // =============================
 const CITY = "Kyoto";
 
-// --- 【重要】PKCE（セキュリティ強化版）のためのパスワード生成処理 ---
+// --- PKCE（セキュリティ強化版）のためのパスワード生成処理 ---
 function generateRandomString(length) {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -27,11 +27,10 @@ async function generateCodeChallenge(codeVerifier) {
 // 1. Spotifyのログインボタンが押されたときの処理
 document.getElementById("loginBtn").addEventListener("click", async () => {
     const verifier = generateRandomString(128);
-    localStorage.setItem("spotify_verifier", verifier); // ブラウザに一時保存
+    localStorage.setItem("spotify_verifier", verifier);
     
     const challenge = await generateCodeChallenge(verifier);
 
-    // 新しいルールの通り、response_typeを 'code' に変更しています
     const params = new URLSearchParams({
         client_id: SPOTIFY_CLIENT_ID,
         response_type: 'code',
@@ -41,6 +40,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
         code_challenge: challenge
     });
 
+    // 【修正箇所1】正しいSpotify認証URL
     window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`; 
 });
 
@@ -62,7 +62,7 @@ if (code) {
         code_verifier: verifier
     });
 
-    // 取得したcodeを正式なアクセストークン（鍵）と交換します
+    // 【修正箇所2】正しいSpotifyトークン取得URL
     fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -72,7 +72,7 @@ if (code) {
     .then(data => {
         if (data.access_token) {
             localStorage.setItem("spotify_access_token", data.access_token);
-            window.history.replaceState({}, document.title, window.location.pathname); // URLを綺麗にする
+            window.history.replaceState({}, document.title, window.location.pathname);
             
             document.getElementById("loginBtn").innerText = "🔒 Spotify連携済み";
             document.getElementById("getWeatherBtn").disabled = false;
@@ -92,11 +92,18 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
     const accessToken = localStorage.getItem("spotify_access_token");
     if (!accessToken) return alert("Spotifyと連携してください");
 
+    // 【修正箇所3】正しいOpenWeatherMap API URL
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${CITY}&appid=${WEATHER_API_KEY}&units=metric`;
 
     try {
         const weatherResponse = await fetch(weatherUrl);
         const weatherData = await weatherResponse.json();
+        
+        // 天気APIのエラーを検知
+        if (weatherData.cod && weatherData.cod !== 200) {
+            throw new Error(`天気APIエラー (${weatherData.message})。APIキーが間違っているか、有効化待ちです。`);
+        }
+
         const weather = weatherData.weather[0].main; 
         const temp = weatherData.main.temp;
 
@@ -118,12 +125,18 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
             seedGenres = "indie,ambient";
         }
 
-        const spotifyUrl = `https://api.spotify.com/v1/recommendations?seed_genres=${seedGenres}&target_valence=${targetVolume}&target_energy=${targetEnergy}`;
+        // 【修正箇所4】正しいSpotify おすすめ曲取得API URL
+        const spotifyUrl = `https://api.spotify.com/v1/recommendations?limit=5&seed_genres=${seedGenres}&target_valence=${targetVolume}&target_energy=${targetEnergy}`;
         
         const spotifyResponse = await fetch(spotifyUrl, {
             headers: { 'Authorization': 'Bearer ' + accessToken }
         });
         const spotifyData = await spotifyResponse.json();
+
+        // Spotify APIのエラーを検知
+        if (spotifyData.error) {
+            throw new Error(`Spotifyエラー: ${spotifyData.error.message}`);
+        }
 
         let htmlContent = `
             <h3>現在の京都の天気: ${weather} (${temp}度)</h3>
@@ -139,7 +152,8 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
         document.getElementById("result").innerHTML = htmlContent;
 
     } catch (error) {
-        console.error("エラーが発生しました", error);
-        document.getElementById("result").innerHTML = "<p>データの取得に失敗しました。設定を見直してください。</p>";
+        console.error("詳細なエラー原因:", error);
+        // エラー内容を画面に直接表示するように変更
+        document.getElementById("result").innerHTML = `<p style="color: red;"><strong>エラーが発生しました：</strong><br>${error.message}</p>`;
     }
 });
