@@ -42,7 +42,6 @@
             margin-bottom: 20px;
         }
 
-        /* 👤 ユーザー情報表示エリアのスタイル */
         .user-profile {
             background: rgba(29, 185, 84, 0.1);
             border: 1px solid rgba(29, 185, 84, 0.3);
@@ -52,7 +51,7 @@
             font-size: 0.9rem;
             color: #1DB954;
             font-weight: bold;
-            display: none; /* 初期状態は非表示 */
+            display: none;
         }
 
         .search-box {
@@ -126,13 +125,6 @@
             box-shadow: 0 4px 15px rgba(255, 81, 47, 0.3);
         }
 
-        #playlistBtn {
-            background: linear-gradient(45deg, #00c6ff 0%, #0072ff 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(0, 114, 255, 0.3);
-            margin-top: 15px;
-        }
-
         #result {
             margin-top: 30px;
             padding: 20px;
@@ -157,6 +149,9 @@
         </div>
         
         <button id="loginBtn" class="btn">1. Spotifyと連携する</button>
+        
+        <button id="clearBtn" class="btn" style="background: #333; color: #fff;">🔑 連携をリセットする</button> 
+        
         <button id="getWeatherBtn" class="btn" disabled>2. 天気から曲を検索</button> 
         
         <div id="result">
