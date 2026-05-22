@@ -42,7 +42,19 @@
             margin-bottom: 20px;
         }
 
-        /* 都市入力エリアの横並び設定 */
+        /* 👤 ユーザー情報表示エリアのスタイル */
+        .user-profile {
+            background: rgba(29, 185, 84, 0.1);
+            border: 1px solid rgba(29, 185, 84, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #1DB954;
+            font-weight: bold;
+            display: none; /* 初期状態は非表示 */
+        }
+
         .search-box {
             display: flex;
             gap: 10px;
@@ -91,7 +103,6 @@
             transform: none;
         }
 
-        /* 各種ボタンの専用カラー */
         #gpsBtn {
             width: auto;
             padding: 0 15px;
@@ -115,7 +126,6 @@
             box-shadow: 0 4px 15px rgba(255, 81, 47, 0.3);
         }
 
-        /* 💾 プレイリスト保存ボタンのスタイル */
         #playlistBtn {
             background: linear-gradient(45deg, #00c6ff 0%, #0072ff 100%);
             color: white;
@@ -132,29 +142,14 @@
             text-align: left;
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-
-        /* 試聴ボタン（ミニサイズ） */
-        .preview-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            margin-right: 8px;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-        .preview-btn.playing {
-            background: #ff4757;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🎧 Weather Beats Pro</h1>
-        <p class="subtitle">30秒試聴・GPS・プレイリスト保存機能搭載</p>
+        <p class="subtitle">GPS・プレイリスト保存機能搭載</p>
+        
+        <div id="userProfile" class="user-profile"></div>
         
         <div class="search-box">
             <input type="text" id="cityInput" class="input-field" placeholder="都市名を英語で入力" value="Kyoto">
