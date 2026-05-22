@@ -1,7 +1,7 @@
 // ====== あなたの設定項目 ======
 const WEATHER_API_KEY = "6569f9193b1871a2521eeb1bb5ffc92a";
 const SPOTIFY_CLIENT_ID = "e7abf7e217d7455b94b584b7ffbb58e8";
-const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
+const REDIRECT_URI = "";
 // =============================
 const CITY = "Kyoto";
 
@@ -113,20 +113,19 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
         }
 
         const weather = weatherData.weather[0].main; 
-        const temp = weatherData.main.temp;
+        const temp = Math.round(weatherData.main.temp); // 気温を四捨五入して綺麗に表示
 
         // --- 天気に合わせた「検索キーワード」の決定 ---
-        let searchQuery = "feel good pop"; // デフォルト
+        let searchQuery = "feel good pop"; 
         
         if (weather === "Clear") {
-            searchQuery = "summer drive vibe"; // 晴れ：爽快な曲
+            searchQuery = "summer drive vibe"; 
         } else if (weather === "Rain") {
-            searchQuery = "rainy day jazz cafe"; // 雨：落ち着いた曲
+            searchQuery = "rainy day jazz cafe"; 
         } else if (weather === "Clouds") {
-            searchQuery = "lofi ambient chill"; // 曇り：お洒落なローファイ
+            searchQuery = "lofi ambient chill"; 
         }
 
-        // 【修正箇所】正しいSpotifyの検索API URL
         const spotifySearchUrl = `https://${s_part4}.${s_part2}.${s_part3}/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=5`;
         
         const spotifyResponse = await fetch(spotifySearchUrl, {
@@ -139,15 +138,31 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
         }
 
         let htmlContent = `
-            <h3>現在の京都の天気: ${weather} (${temp}度)</h3>
-            <p>天気の気分に合わせたおすすめ曲：</p>
-            <ul>
+            <h3 style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">
+                ☁️ 京都の天気: ${weather} (${temp}℃)
+            </h3>
+            <ul style="list-style: none; padding: 0; margin: 0;">
         `;
 
-        // 検索結果のアイテムを取り出して表示
         if (spotifyData.tracks && spotifyData.tracks.items && spotifyData.tracks.items.length > 0) {
             spotifyData.tracks.items.forEach(track => {
-                htmlContent += `<li><strong>${track.name}</strong> - ${track.artists[0].name}</li>`;
+                // 画像URLとSpotifyリンクを取得
+                const albumImg = track.album.images[0] ? track.album.images[0].url : "";
+                const spotifyLink = track.external_urls.spotify;
+                
+                // リッチなリストデザインを構築
+                htmlContent += `
+                    <li style="display: flex; align-items: center; background: rgba(0,0,0,0.3); margin-bottom: 15px; padding: 10px; border-radius: 12px; transition: transform 0.2s;">
+                        <img src="${albumImg}" alt="Album Art" style="width: 55px; height: 55px; border-radius: 8px; margin-right: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                        <div style="flex-grow: 1; text-align: left;">
+                            <strong style="font-size: 1.05rem; display: block; margin-bottom: 3px;">${track.name}</strong>
+                            <span style="font-size: 0.85rem; color: #b3b3b3;">${track.artists[0].name}</span>
+                        </div>
+                        <a href="${spotifyLink}" target="_blank" style="background-color: #1DB954; color: white; text-decoration: none; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; margin-left: 10px; box-shadow: 0 2px 8px rgba(29, 185, 84, 0.4);">
+                            聴く
+                        </a>
+                    </li>
+                `;
             });
         } else {
             htmlContent += "<li>曲が見つかりませんでした。</li>";
