@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather & Music</title>
     <style>
-        /* ページ全体の背景とフォント設定 */
         body {
             margin: 0;
             font-family: 'Helvetica Neue', Arial, sans-serif;
-            /* リッチな夜空のようなグラデーション背景 */
             background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
             color: #ffffff;
             display: flex;
@@ -18,7 +16,6 @@
             min-height: 100vh;
         }
 
-        /* すりガラス風のメインパネル（グラスモーフィズム） */
         .container {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(15px);
@@ -42,15 +39,38 @@
         p.subtitle {
             color: #b3b3b3;
             font-size: 0.9rem;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
-        /* ボタンの共通デザイン */
+        /* 🌟 今回追加：入力欄のデザイン */
+        .input-field {
+            width: 100%;
+            padding: 14px 16px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .input-field::placeholder {
+            color: #888;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #1DB954;
+            box-shadow: 0 0 8px rgba(29, 185, 84, 0.3);
+        }
+
         .btn {
             display: block;
             width: 100%;
             padding: 16px;
-            margin: 15px 0;
+            margin: 10px 0;
             border: none;
             border-radius: 50px;
             font-size: 1rem;
@@ -59,34 +79,29 @@
             transition: all 0.3s ease;
         }
 
-        /* ボタンにカーソルを合わせた時のフワッと浮くアニメーション */
         .btn:hover:not(:disabled) {
             transform: translateY(-3px);
             box-shadow: 0 7px 20px rgba(0,0,0,0.4);
         }
 
-        /* ボタンが押せない状態のデザイン */
         .btn:disabled {
             opacity: 0.4;
             cursor: not-allowed;
             transform: none;
         }
 
-        /* 1. Spotifyボタン（Spotifyのブランドカラー） */
         #loginBtn {
             background-color: #1DB954;
             color: white;
             box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);
         }
 
-        /* 2. 天気ボタン（夕焼けのようなグラデーション） */
         #getWeatherBtn {
             background: linear-gradient(45deg, #FF512F 0%, #F09819 100%);
             color: white;
             box-shadow: 0 4px 15px rgba(255, 81, 47, 0.3);
         }
 
-        /* 結果表示エリア */
         #result {
             margin-top: 30px;
             padding: 20px;
@@ -96,31 +111,17 @@
             text-align: left;
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-
-        /* リスト（曲名）のデザイン */
-        ul {
-            padding-left: 20px;
-            color: #e0e0e0;
-        }
-
-        li {
-            margin-bottom: 12px;
-            line-height: 1.4;
-        }
-
-        li strong {
-            color: #ffffff;
-            font-size: 1.1rem;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🎧 Weather Beats ⛅️</h1>
-        <p class="subtitle">今の天気から、あなたにぴったりの曲を。</p>
+        <p class="subtitle">好きな都市の天気から、ぴったりの曲を。</p>
+        
+        <input type="text" id="cityInput" class="input-field" placeholder="都市名を英語で入力 (例: Tokyo, London)" value="Kyoto">
         
         <button id="loginBtn" class="btn">1. Spotifyと連携する</button>
-        <button id="getWeatherBtn" class="btn" disabled>2. いまの天気から曲を生成</button> 
+        <button id="getWeatherBtn" class="btn" disabled>2. 天気から曲を検索</button> 
         
         <div id="result">
             <p style="text-align: center; color: #888;">ここに結果が表示されます</p>
