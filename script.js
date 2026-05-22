@@ -15,8 +15,8 @@ const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
 const BASE_API_URL = `https://${s_part4}.${s_part2}.${s_part3}/v1`;
 
 // グローバル変数
-let currentTrackUris = [];     // 検索された5曲のURI（プレイリスト保存用）
-let currentPlaylistName = "";  // 作成するプレイリスト名
+let currentTrackUris = [];     
+let currentPlaylistName = "";  
 
 function generateRandomString(length) {
     let text = '';
@@ -36,7 +36,6 @@ async function generateCodeChallenge(codeVerifier) {
         .replace(/=+$/, '');
 }
 
-// 👤 ログイン中のSpotifyアカウント名を取得して表示する関数
 async function fetchUserProfile(accessToken) {
     try {
         const response = await fetch(`${BASE_API_URL}/me`, {
@@ -44,7 +43,6 @@ async function fetchUserProfile(accessToken) {
         });
         
         if (response.status === 401) {
-            // トークン切れの場合は情報を削除してリセット
             localStorage.removeItem("spotify_access_token");
             return;
         }
@@ -52,9 +50,8 @@ async function fetchUserProfile(accessToken) {
         const data = await response.json();
         const profileDiv = document.getElementById("userProfile");
         
-        // 画面に「〇〇としてログイン中」と表示
         profileDiv.innerText = `👤 ログイン中: ${data.display_name} (${data.id})`;
-        profileDiv.style.display = "block"; // 枠を表示する
+        profileDiv.style.display = "block"; 
     } catch (error) {
         console.error("ユーザー情報の取得に失敗:", error);
     }
@@ -108,7 +105,6 @@ if (code) {
             document.getElementById("getWeatherBtn").disabled = false;
             document.getElementById("result").innerHTML = "<p>連携が成功しました！「2」のボタンを押してください。</p>";
             
-            // 👤 ログイン直後にユーザー名を取得
             fetchUserProfile(data.access_token);
         } else {
             document.getElementById("result").innerHTML = `<p style="color:#ff6b6b;">【Spotify認証エラー】${JSON.stringify(data)}</p>`;
@@ -123,11 +119,10 @@ if (code) {
     document.getElementById("loginBtn").disabled = true;
     document.getElementById("getWeatherBtn").disabled = false;
     
-    // 👤 すでにログイン済みの状態でページを開いたときもユーザー名を取得
     fetchUserProfile(savedToken);
 }
 
-// 核心：天気と音楽を取得して表示する共通処理
+// 核心：天気と音楽を取得
 async function fetchWeatherAndMusic(weatherUrl) {
     const accessToken = localStorage.getItem("spotify_access_token");
     if (!accessToken) return alert("Spotifyと連携してください");
@@ -163,7 +158,7 @@ async function fetchWeatherAndMusic(weatherUrl) {
         if (spotifyData.error) {
             if (spotifyData.error.status === 401 || spotifyData.error.message.includes("expired")) {
                 localStorage.removeItem("spotify_access_token");
-                throw new Error("Spotifyの連携期限（1時間）が切れました。<br>🔄 ページを再読み込みして連携し直してください。");
+                throw new Error("Spotifyの連携期限が切れました。<br>🔄 ページを再読み込みして連携し直してください。");
             }
             throw new Error(`【Spotifyエラー】${spotifyData.error.message}`);
         }
@@ -191,11 +186,6 @@ async function fetchWeatherAndMusic(weatherUrl) {
                             <strong style="font-size: 1rem; display: block; margin-bottom: 3px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.name}</strong>
                             <span style="font-size: 0.8rem; color: #b3b3b3; display: block; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.artists[0].name}</span>
                         </div>
-                        <div style="display: flex; align-items: center; flex-shrink: 0;">
-                            <a href="${spotifyLink}" target="_blank" style="background-color: #1DB954; color: white; text-decoration: none; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">
-                                本編で聴く
-                            </a>
-                        </div>
                     </li>
                 `;
             });
@@ -215,7 +205,6 @@ async function fetchWeatherAndMusic(weatherUrl) {
     }
 }
 
-// ボタン入力での検索
 document.getElementById("getWeatherBtn").addEventListener("click", () => {
     const inputCity = document.getElementById("cityInput").value.trim() || "Kyoto";
     const safeApiKey = encodeURIComponent(WEATHER_API_KEY.trim());
@@ -223,7 +212,6 @@ document.getElementById("getWeatherBtn").addEventListener("click", () => {
     fetchWeatherAndMusic(weatherUrl);
 });
 
-// GPS連動機能
 document.getElementById("gpsBtn").addEventListener("click", () => {
     if (!navigator.geolocation) return alert("お使いのブラウザはGPSに対応していません");
     
@@ -238,12 +226,12 @@ document.getElementById("gpsBtn").addEventListener("click", () => {
             fetchWeatherAndMusic(weatherUrl);
         },
         (error) => {
-            document.getElementById("result").innerHTML = `<p style="color: #ff6b6b;">GPS取得失敗: ${error.message}<br>ブラウザの位置情報許可を確認してください。</p>`;
+            document.getElementById("result").innerHTML = `<p style="color: #ff6b6b;">GPS取得失敗: ${error.message}</p>`;
         }
     );
 });
 
-// Spotifyプレイリスト作成・保存機能
+// 🌟 ここを大幅に改修しました（直接リンクの生成）
 window.saveToSpotifyPlaylist = async function(btn) {
     const accessToken = localStorage.getItem("spotify_access_token");
     if (currentTrackUris.length === 0) return;
@@ -272,6 +260,9 @@ window.saveToSpotifyPlaylist = async function(btn) {
         });
         const playlistData = await createPlaylistResponse.json();
         const playlistId = playlistData.id;
+        
+        // ✨ Spotifyから直接、プレイリストのURLをもらう！
+        const playlistUrl = playlistData.external_urls.spotify; 
 
         await fetch(`${BASE_API_URL}/playlists/${playlistId}/tracks`, {
             method: 'POST',
@@ -282,9 +273,12 @@ window.saveToSpotifyPlaylist = async function(btn) {
             body: JSON.stringify({ uris: currentTrackUris })
         });
 
-        btn.innerText = "✨ Spotifyに保存完了！";
-        btn.style.background = "#1DB954";
-        alert(`Spotifyに新しいプレイリスト「${currentPlaylistName}」を作成し、5曲を保存しました！`);
+        // ボタンを「作成したプレイリストを開くリンク」にまるごと置き換える
+        btn.outerHTML = `
+            <a href="${playlistUrl}" target="_blank" class="btn" style="background-color: #1DB954; color: white; text-decoration: none; display: block; text-align: center; margin-top: 15px; box-shadow: 0 4px 15px rgba(29, 185, 84, 0.4);">
+                ✨ 保存完了！ここをタップして開く
+            </a>
+        `;
 
     } catch (error) {
         console.error(error);
