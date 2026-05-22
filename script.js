@@ -1,40 +1,97 @@
 // ====== あなたの設定項目 ======
-const WEATHER_API_KEY = "6569f9193b1871a2521eeb1bb5ffc92a";
-const SPOTIFY_CLIENT_ID = "e7abf7e217d7455b94b584b7ffbb58e8";
-const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/"; // 例: https://ユーザー名.github.io/リポジトリ名/
+const WEATHER_API_KEY = "あなたのOpenWeatherMapのAPIキー";
+const SPOTIFY_CLIENT_ID = "あなたのSpotifyのClient ID";
+const REDIRECT_URI = "あなたのGitHub PagesのURL"; // 例: https://ユーザー名.github.io/リポジトリ名/
 // =============================
+const CITY = "Kyoto";
 
-const CITY = "Kyoto"; 
-
-// 1. URLからSpotifyのアクセストークン（一時的な鍵）を抜き出す処理
-function getAccessToken() {
-    const hash = window.location.hash;
-    if (hash) {
-        const params = new URLSearchParams(hash.substring(1));
-        return params.get("access_token");
+// --- 【重要】PKCE（セキュリティ強化版）のためのパスワード生成処理 ---
+function generateRandomString(length) {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < length; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
     }
-    return null;
+    return text;
 }
 
-const token = getAccessToken();
+async function generateCodeChallenge(codeVerifier) {
+    const data = new TextEncoder().encode(codeVerifier);
+    const digest = await window.crypto.subtle.digest('SHA-256', data);
+    return btoa(String.fromCharCode.apply(null, [...new Uint8Array(digest)]))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+}
 
-// トークンが取れた（ログイン完了した）場合の画面切り替え
-if (token) {
+// 1. Spotifyのログインボタンが押されたときの処理
+document.getElementById("loginBtn").addEventListener("click", async () => {
+    const verifier = generateRandomString(128);
+    localStorage.setItem("spotify_verifier", verifier); // ブラウザに一時保存
+    
+    const challenge = await generateCodeChallenge(verifier);
+
+    // 新しいルールの通り、response_typeを 'code' に変更しています
+    const params = new URLSearchParams({
+        client_id: SPOTIFY_CLIENT_ID,
+        response_type: 'code',
+        redirect_uri: REDIRECT_URI,
+        scope: 'playlist-modify-public',
+        code_challenge_method: 'S256',
+        code_challenge: challenge
+    });
+
+    window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`; 
+});
+
+// 2. ログイン後、URLから「code」を受け取って正式な「鍵」に交換する処理
+const urlParams = new URLSearchParams(window.location.search);
+const code = urlParams.get('code');
+
+if (code) {
+    document.getElementById("loginBtn").innerText = "⏳ 連携処理中...";
+    document.getElementById("loginBtn").disabled = true;
+
+    const verifier = localStorage.getItem("spotify_verifier");
+
+    const body = new URLSearchParams({
+        client_id: SPOTIFY_CLIENT_ID,
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: REDIRECT_URI,
+        code_verifier: verifier
+    });
+
+    // 取得したcodeを正式なアクセストークン（鍵）と交換します
+    fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.access_token) {
+            localStorage.setItem("spotify_access_token", data.access_token);
+            window.history.replaceState({}, document.title, window.location.pathname); // URLを綺麗にする
+            
+            document.getElementById("loginBtn").innerText = "🔒 Spotify連携済み";
+            document.getElementById("getWeatherBtn").disabled = false;
+            document.getElementById("result").innerHTML = "<p>連携が成功しました！「2」のボタンを押してください。</p>";
+        }
+    })
+    .catch(error => console.error('Token Error:', error));
+} else if (localStorage.getItem("spotify_access_token")) {
+    // すでにログイン済みの場合
     document.getElementById("loginBtn").innerText = "🔒 Spotify連携済み";
     document.getElementById("loginBtn").disabled = true;
     document.getElementById("getWeatherBtn").disabled = false;
-    document.getElementById("result").innerHTML = "<p>連携が成功しました！「2」のボタンを押してください。</p>";
 }
-
-// 2. Spotifyのログインボタンが押されたときの処理
-document.getElementById("loginBtn").addEventListener("click", () => {
-    // 【修正箇所1】Spotifyの正しい認証画面のURL
-    const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=playlist-modify-public`;
-    window.location.href = authUrl; 
-});
 
 // 3. 「いまの天気から曲を生成」ボタンが押されたときの処理
 document.getElementById("getWeatherBtn").addEventListener("click", async () => {
+    const accessToken = localStorage.getItem("spotify_access_token");
+    if (!accessToken) return alert("Spotifyと連携してください");
+
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${CITY}&appid=${WEATHER_API_KEY}&units=metric`;
 
     try {
@@ -61,11 +118,10 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
             seedGenres = "indie,ambient";
         }
 
-        // 【修正箇所2】Spotifyの正しい曲取得用APIのURL
         const spotifyUrl = `https://api.spotify.com/v1/recommendations?seed_genres=${seedGenres}&target_valence=${targetVolume}&target_energy=${targetEnergy}`;
         
         const spotifyResponse = await fetch(spotifyUrl, {
-            headers: { 'Authorization': 'Bearer ' + token }
+            headers: { 'Authorization': 'Bearer ' + accessToken }
         });
         const spotifyData = await spotifyResponse.json();
 
