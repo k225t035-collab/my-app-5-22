@@ -65,7 +65,8 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
         client_id: SPOTIFY_CLIENT_ID.trim(),
         response_type: 'code',
         redirect_uri: REDIRECT_URI.trim(),
-        scope: 'playlist-modify-public', 
+        // 🌟 ここを変更: 非公開プレイリストの権限も要求するようにしました
+        scope: 'playlist-modify-public playlist-modify-private', 
         code_challenge_method: 'S256',
         code_challenge: challenge
     });
@@ -225,7 +226,6 @@ document.getElementById("gpsBtn").addEventListener("click", () => {
     );
 });
 
-// 🌟 ここを「エラー通知強化版」に書き換えました
 window.saveToSpotifyPlaylist = async function(btn) {
     const accessToken = localStorage.getItem("spotify_access_token");
     if (currentTrackUris.length === 0) return;
@@ -234,7 +234,6 @@ window.saveToSpotifyPlaylist = async function(btn) {
     btn.disabled = true;
 
     try {
-        // 1. ユーザーIDの取得
         const meResponse = await fetch(`${BASE_API_URL}/me`, {
             headers: { 'Authorization': 'Bearer ' + accessToken }
         });
@@ -244,8 +243,10 @@ window.saveToSpotifyPlaylist = async function(btn) {
         const meData = await meResponse.json();
         const userId = meData.id;
 
-        // 2. プレイリストの空枠を作成
-        const createPlaylistResponse = await fetch(`${BASE_API_URL}/users/${userId}/playlists`, {
+        // 🌟 念のためユーザーIDをエンコード処理
+        const safeUserId = encodeURIComponent(userId);
+
+        const createPlaylistResponse = await fetch(`${BASE_API_URL}/users/${safeUserId}/playlists`, {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + accessToken,
@@ -253,15 +254,14 @@ window.saveToSpotifyPlaylist = async function(btn) {
             },
             body: JSON.stringify({
                 name: currentPlaylistName,
-                public: true,
+                public: false, // 🌟 ここを変更: 「非公開」で作成するようにしました
                 description: "Weather Beats アプリから自動生成されたプレイリスト"
             })
         });
 
-        // 🚨 ここで失敗（特に403エラー）している確率が高いです
         if (!createPlaylistResponse.ok) {
             if (createPlaylistResponse.status === 403) {
-                throw new Error("【エラー 403 Forbidden】\nSpotify開発者画面の『User Management』に、このアカウントが登録されていません！登録を確認してください。");
+                throw new Error("【エラー 403 Forbidden】\nSpotify側のアクセス権限エラーです。");
             } else {
                 throw new Error(`【プレイリスト作成失敗】エラーコード: ${createPlaylistResponse.status}`);
             }
@@ -271,7 +271,6 @@ window.saveToSpotifyPlaylist = async function(btn) {
         const playlistId = playlistData.id;
         const playlistUrl = playlistData.external_urls.spotify; 
 
-        // 3. プレイリストに曲を注入
         const addTracksResponse = await fetch(`${BASE_API_URL}/playlists/${playlistId}/tracks`, {
             method: 'POST',
             headers: {
@@ -295,7 +294,7 @@ window.saveToSpotifyPlaylist = async function(btn) {
         console.error(error);
         btn.innerText = "❌ 保存失敗";
         btn.disabled = false;
-        alert(error.message); // 👈 原因を具体的なメッセージでポップアップさせます
+        alert(error.message); 
     }
 };
 
