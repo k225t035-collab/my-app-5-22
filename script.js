@@ -126,10 +126,10 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
             searchQuery = "lofi ambient chill"; // 曇り：お洒落なローファイ
         }
 
-        // Spotifyの検索API（/v1/search）を使用（最新仕様でも完全動作）
-        const spotifyUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=5`;
+        // 【修正箇所】正しいSpotifyの検索API URL
+        const spotifySearchUrl = `https://${s_part4}.${s_part2}.${s_part3}/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=5`;
         
-        const spotifyResponse = await fetch(spotifyUrl, {
+        const spotifyResponse = await fetch(spotifySearchUrl, {
             headers: { 'Authorization': 'Bearer ' + accessToken }
         });
         const spotifyData = await spotifyResponse.json();
