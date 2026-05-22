@@ -1,13 +1,10 @@
 // ====== あなたの設定項目 ======
-// 【重要】以下の3つの "" の中身を、ご自身のものに書き換えてください。
-// 前後に余計なスペースが入らないように注意してください。
 const WEATHER_API_KEY = "6569f9193b1871a2521eeb1bb5ffc92a";
 const SPOTIFY_CLIENT_ID = "e7abf7e217d7455b94b584b7ffbb58e8";
-const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/"; // 例: https://ユーザー名.github.io/リポジトリ名/
+const REDIRECT_URI = "";
 // =============================
 const CITY = "Kyoto";
 
-// --- URL生成（システムフィルター回避用） ---
 const s_part1 = "accounts";
 const s_part2 = "spotify";
 const s_part3 = "com";
@@ -18,19 +15,6 @@ const BASE_TOKEN_URL = `https://${s_part1}.${s_part2}.${s_part3}/api/token`;
 const BASE_RECOMMEND_URL = `https://${s_part4}.${s_part2}.${s_part3}/v1/recommendations?`;
 const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
 
-// --- Safariのエラーを防ぐための専用関数 ---
-async function fetchSafeJSON(url, options = {}) {
-    const response = await fetch(url, options);
-    const text = await response.text(); 
-    try {
-        return JSON.parse(text); 
-    } catch (e) {
-        console.error("サーバーからの実際の返答:", text);
-        throw new Error(`APIキーが間違っているか、設定されていません（あるいは通信エラー）。設定項目の英数字を見直してください。`);
-    }
-}
-
-// --- PKCEのためのパスワード生成処理 ---
 function generateRandomString(length) {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -49,7 +33,7 @@ async function generateCodeChallenge(codeVerifier) {
         .replace(/=+$/, '');
 }
 
-// 1. Spotifyのログインボタンが押されたときの処理
+// 1. Spotify Login
 document.getElementById("loginBtn").addEventListener("click", async () => {
     const verifier = generateRandomString(128);
     localStorage.setItem("spotify_verifier", verifier);
@@ -57,7 +41,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     const challenge = await generateCodeChallenge(verifier);
 
     const params = new URLSearchParams({
-        client_id: SPOTIFY_CLIENT_ID.trim(), // 余計な空白を自動削除
+        client_id: SPOTIFY_CLIENT_ID.trim(),
         response_type: 'code',
         redirect_uri: REDIRECT_URI.trim(),
         scope: 'playlist-modify-public',
@@ -68,7 +52,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     window.location.href = BASE_AUTH_URL + params.toString(); 
 });
 
-// 2. ログイン後、URLから「code」を受け取る処理
+// 2. Token Exchange
 const urlParams = new URLSearchParams(window.location.search);
 const code = urlParams.get('code');
 
@@ -91,49 +75,55 @@ if (code) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body
     })
-    .then(response => response.text())
-    .then(text => {
-        try {
-            const data = JSON.parse(text);
-            if (data.access_token) {
-                localStorage.setItem("spotify_access_token", data.access_token);
-                window.history.replaceState({}, document.title, window.location.pathname);
-                document.getElementById("loginBtn").innerText = "🔒 Spotify連携済み";
-                document.getElementById("getWeatherBtn").disabled = false;
-                document.getElementById("result").innerHTML = "<p>連携が成功しました！「2」のボタンを押してください。</p>";
-            } else {
-                console.error('トークン取得エラー:', data);
-            }
-        } catch(e) {
-            console.error('JSONパースエラー:', text);
+    .then(response => response.json())
+    .then(data => {
+        if (data.access_token) {
+            localStorage.setItem("spotify_access_token", data.access_token);
+            window.history.replaceState({}, document.title, window.location.pathname);
+            document.getElementById("loginBtn").innerText = "🔒 Spotify連携済み";
+            document.getElementById("getWeatherBtn").disabled = false;
+            document.getElementById("result").innerHTML = "<p>連携が成功しました！「2」のボタンを押してください。</p>";
+        } else {
+            document.getElementById("result").innerHTML = `<p style="color:#ff6b6b;">【Spotify認証エラー】${JSON.stringify(data)}</p>`;
         }
     })
-    .catch(error => console.error('通信エラー:', error));
+    .catch(error => {
+        document.getElementById("result").innerHTML = `<p style="color:#ff6b6b;">【Spotify通信エラー】${error.message}</p>`;
+    });
 } else if (localStorage.getItem("spotify_access_token")) {
     document.getElementById("loginBtn").innerText = "🔒 Spotify連携済み";
     document.getElementById("loginBtn").disabled = true;
     document.getElementById("getWeatherBtn").disabled = false;
 }
 
-// 3. 「いまの天気から曲を生成」ボタンが押されたときの処理
+// 3. Weather & Music
 document.getElementById("getWeatherBtn").addEventListener("click", async () => {
     const accessToken = localStorage.getItem("spotify_access_token");
     if (!accessToken) return alert("Spotifyと連携してください");
 
-    // 日本語や空白でサーバーがクラッシュするのを防ぐ（エンコード処理）
     const safeApiKey = encodeURIComponent(WEATHER_API_KEY.trim());
     const weatherUrl = BASE_WEATHER_URL + `q=${CITY}&appid=${safeApiKey}&units=metric`;
 
     try {
-        const weatherData = await fetchSafeJSON(weatherUrl);
+        // --- 天気APIの通信 ---
+        const weatherResponse = await fetch(weatherUrl);
+        const weatherText = await weatherResponse.text();
         
+        let weatherData;
+        try {
+            weatherData = JSON.parse(weatherText);
+        } catch (e) {
+            throw new Error(`【天気データの解析エラー】サーバーからの返答: ${weatherText}`);
+        }
+
         if (weatherData.cod && weatherData.cod !== 200) {
-            throw new Error(`天気APIエラー (${weatherData.message})。APIキーが間違っているか、有効化待ちです。`);
+            throw new Error(`【天気APIエラー】コード: ${weatherData.cod}, メッセージ: ${weatherData.message}`);
         }
 
         const weather = weatherData.weather[0].main; 
         const temp = weatherData.main.temp;
 
+        // --- Spotifyおすすめ曲の通信 ---
         let targetVolume = 0.5; 
         let targetEnergy = 0.5; 
         let seedGenres = "pop"; 
@@ -154,16 +144,24 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
 
         const spotifyUrl = BASE_RECOMMEND_URL + `seed_genres=${seedGenres}&target_valence=${targetVolume}&target_energy=${targetEnergy}`;
         
-        const spotifyData = await fetchSafeJSON(spotifyUrl, {
+        const spotifyResponse = await fetch(spotifyUrl, {
             headers: { 'Authorization': 'Bearer ' + accessToken }
         });
+        const spotifyText = await spotifyResponse.text();
+
+        let spotifyData;
+        try {
+            spotifyData = JSON.parse(spotifyText);
+        } catch (e) {
+            throw new Error(`【Spotifyデータの解析エラー】サーバーからの返答: ${spotifyText}`);
+        }
 
         if (spotifyData.error) {
             if (spotifyData.error.status === 401) {
                 localStorage.removeItem("spotify_access_token");
-                throw new Error("Spotifyの認証期限が切れました。ページを更新してもう一度「1」から連携してください。");
+                throw new Error("【Spotifyエラー】認証期限が切れました。ページを更新してもう一度「1」から連携してください。");
             }
-            throw new Error(`Spotifyエラー: ${spotifyData.error.message}`);
+            throw new Error(`【Spotifyエラー】${spotifyData.error.message}`);
         }
 
         let htmlContent = `
@@ -185,6 +183,6 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
 
     } catch (error) {
         console.error("詳細なエラー原因:", error);
-        document.getElementById("result").innerHTML = `<p style="color: red;"><strong>エラーが発生しました：</strong><br>${error.message}</p>`;
+        document.getElementById("result").innerHTML = `<p style="color: #ff6b6b;"><strong>エラーが発生しました：</strong><br>${error.message}</p>`;
     }
 });
