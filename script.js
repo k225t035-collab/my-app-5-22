@@ -12,7 +12,6 @@ const s_part4 = "api";
 
 const BASE_AUTH_URL = `https://${s_part1}.${s_part2}.${s_part3}/authorize?`;
 const BASE_TOKEN_URL = `https://${s_part1}.${s_part2}.${s_part3}/api/token`;
-const BASE_RECOMMEND_URL = `https://${s_part4}.${s_part2}.${s_part3}/v1/recommendations?`;
 const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
 
 function generateRandomString(length) {
@@ -107,71 +106,47 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
     try {
         // --- 天気APIの通信 ---
         const weatherResponse = await fetch(weatherUrl);
-        const weatherText = await weatherResponse.text();
-        
-        let weatherData;
-        try {
-            weatherData = JSON.parse(weatherText);
-        } catch (e) {
-            throw new Error(`【天気データの解析エラー】サーバーからの返答: ${weatherText}`);
-        }
+        const weatherData = await weatherResponse.json();
 
         if (weatherData.cod && weatherData.cod !== 200) {
-            throw new Error(`【天気APIエラー】コード: ${weatherData.cod}, メッセージ: ${weatherData.message}`);
+            throw new Error(`【天気APIエラー】${weatherData.message}`);
         }
 
         const weather = weatherData.weather[0].main; 
         const temp = weatherData.main.temp;
 
-        // --- Spotifyおすすめ曲の通信 ---
-        let targetVolume = 0.5; 
-        let targetEnergy = 0.5; 
-        let seedGenres = "pop"; 
-
+        // --- 天気に合わせた「検索キーワード」の決定 ---
+        let searchQuery = "feel good pop"; // デフォルト
+        
         if (weather === "Clear") {
-            targetVolume = 0.8;
-            targetEnergy = 0.8;
-            seedGenres = "pop,dance";
+            searchQuery = "summer drive vibe"; // 晴れ：爽快な曲
         } else if (weather === "Rain") {
-            targetVolume = 0.2;
-            targetEnergy = 0.3;
-            seedGenres = "acoustic,chill";
+            searchQuery = "rainy day jazz cafe"; // 雨：落ち着いた曲
         } else if (weather === "Clouds") {
-            targetVolume = 0.5;
-            targetEnergy = 0.5;
-            seedGenres = "indie,ambient";
+            searchQuery = "lofi ambient chill"; // 曇り：お洒落なローファイ
         }
 
-        const spotifyUrl = BASE_RECOMMEND_URL + `seed_genres=${seedGenres}&target_valence=${targetVolume}&target_energy=${targetEnergy}`;
+        // Spotifyの検索API（/v1/search）を使用（最新仕様でも完全動作）
+        const spotifyUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=5`;
         
         const spotifyResponse = await fetch(spotifyUrl, {
             headers: { 'Authorization': 'Bearer ' + accessToken }
         });
-        const spotifyText = await spotifyResponse.text();
-
-        let spotifyData;
-        try {
-            spotifyData = JSON.parse(spotifyText);
-        } catch (e) {
-            throw new Error(`【Spotifyデータの解析エラー】サーバーからの返答: ${spotifyText}`);
-        }
+        const spotifyData = await spotifyResponse.json();
 
         if (spotifyData.error) {
-            if (spotifyData.error.status === 401) {
-                localStorage.removeItem("spotify_access_token");
-                throw new Error("【Spotifyエラー】認証期限が切れました。ページを更新してもう一度「1」から連携してください。");
-            }
             throw new Error(`【Spotifyエラー】${spotifyData.error.message}`);
         }
 
         let htmlContent = `
             <h3>現在の京都の天気: ${weather} (${temp}度)</h3>
-            <p>おすすめの5曲を選びました：</p>
+            <p>天気の気分に合わせたおすすめ曲：</p>
             <ul>
         `;
 
-        if (spotifyData.tracks && spotifyData.tracks.length > 0) {
-            spotifyData.tracks.forEach(track => {
+        // 検索結果のアイテムを取り出して表示
+        if (spotifyData.tracks && spotifyData.tracks.items && spotifyData.tracks.items.length > 0) {
+            spotifyData.tracks.items.forEach(track => {
                 htmlContent += `<li><strong>${track.name}</strong> - ${track.artists[0].name}</li>`;
             });
         } else {
@@ -182,7 +157,7 @@ document.getElementById("getWeatherBtn").addEventListener("click", async () => {
         document.getElementById("result").innerHTML = htmlContent;
 
     } catch (error) {
-        console.error("詳細なエラー原因:", error);
+        console.error("詳細:", error);
         document.getElementById("result").innerHTML = `<p style="color: #ff6b6b;"><strong>エラーが発生しました：</strong><br>${error.message}</p>`;
     }
 });
