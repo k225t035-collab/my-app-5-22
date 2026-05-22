@@ -14,7 +14,6 @@ const BASE_TOKEN_URL = `https://${s_part1}.${s_part2}.${s_part3}/api/token`;
 const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
 const BASE_API_URL = `https://${s_part4}.${s_part2}.${s_part3}/v1`;
 
-// グローバル変数
 let currentTrackUris = [];     
 let currentPlaylistName = "";  
 
@@ -57,7 +56,6 @@ async function fetchUserProfile(accessToken) {
     }
 }
 
-// 1. Spotify Login
 document.getElementById("loginBtn").addEventListener("click", async () => {
     const verifier = generateRandomString(128);
     localStorage.setItem("spotify_verifier", verifier);
@@ -74,7 +72,6 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     window.location.href = BASE_AUTH_URL + params.toString(); 
 });
 
-// 2. Token Exchange
 const urlParams = new URLSearchParams(window.location.search);
 const code = urlParams.get('code');
 
@@ -122,7 +119,6 @@ if (code) {
     fetchUserProfile(savedToken);
 }
 
-// 核心：天気と音楽を取得
 async function fetchWeatherAndMusic(weatherUrl) {
     const accessToken = localStorage.getItem("spotify_access_token");
     if (!accessToken) return alert("Spotifyと連携してください");
@@ -231,7 +227,6 @@ document.getElementById("gpsBtn").addEventListener("click", () => {
     );
 });
 
-// 🌟 ここを大幅に改修しました（直接リンクの生成）
 window.saveToSpotifyPlaylist = async function(btn) {
     const accessToken = localStorage.getItem("spotify_access_token");
     if (currentTrackUris.length === 0) return;
@@ -261,7 +256,6 @@ window.saveToSpotifyPlaylist = async function(btn) {
         const playlistData = await createPlaylistResponse.json();
         const playlistId = playlistData.id;
         
-        // ✨ Spotifyから直接、プレイリストのURLをもらう！
         const playlistUrl = playlistData.external_urls.spotify; 
 
         await fetch(`${BASE_API_URL}/playlists/${playlistId}/tracks`, {
@@ -273,7 +267,6 @@ window.saveToSpotifyPlaylist = async function(btn) {
             body: JSON.stringify({ uris: currentTrackUris })
         });
 
-        // ボタンを「作成したプレイリストを開くリンク」にまるごと置き換える
         btn.outerHTML = `
             <a href="${playlistUrl}" target="_blank" class="btn" style="background-color: #1DB954; color: white; text-decoration: none; display: block; text-align: center; margin-top: 15px; box-shadow: 0 4px 15px rgba(29, 185, 84, 0.4);">
                 ✨ 保存完了！ここをタップして開く
@@ -287,3 +280,11 @@ window.saveToSpotifyPlaylist = async function(btn) {
         alert("プレイリストの作成に失敗しました: " + error.message);
     }
 };
+
+// 🔑 リセットボタンの処理をここに追加しました
+document.getElementById("clearBtn").addEventListener("click", () => {
+    localStorage.removeItem("spotify_access_token");
+    localStorage.removeItem("spotify_verifier");
+    alert("ブラウザの記憶をリセットしました！ページを再読み込みします。");
+    window.location.reload(); 
+});
