@@ -1,7 +1,7 @@
 // ====== あなたの設定項目 ======
-const WEATHER_API_KEY = "あなたのOpenWeatherMapのAPIキー";
-const SPOTIFY_CLIENT_ID = "あなたのSpotifyのClient ID";
-const REDIRECT_URI = "あなたのGitHub PagesのURL"; // 例: https://ユーザー名.github.io/リポジトリ名/
+const WEATHER_API_KEY = "6569f9193b1871a2521eeb1bb5ffc92a";
+const SPOTIFY_CLIENT_ID = "e7abf7e217d7455b94b584b7ffbb58e8";
+const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/"; // 例: https://ユーザー名.github.io/リポジトリ名/
 // =============================
 const CITY = "Kyoto";
 
