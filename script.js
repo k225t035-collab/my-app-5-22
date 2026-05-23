@@ -4,16 +4,19 @@ const SPOTIFY_CLIENT_ID = "25fdf849cdf44da99c0730897f152a37";
 const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
 // =========================
 
-// 🌟 Spotify公式の正しいURLに修正しました！
-const BASE_AUTH_URL = "https://accounts.spotify.com/authorize?";
-const BASE_TOKEN_URL = "https://accounts.spotify.com/api/token";
+// 🌟 URLが自動変換されないための特殊な書き方（これで通信エラーも起きません）
+const s1 = "accounts";
+const s2 = "spotify";
+const s3 = "com";
+const s4 = "api";
+const BASE_AUTH_URL = `https://${s1}.${s2}.${s3}/authorize?`;
+const BASE_TOKEN_URL = `https://${s1}.${s2}.${s3}/api/token`;
+const BASE_API_URL = `https://${s4}.${s2}.${s3}/v1`;
 const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
-const BASE_API_URL = "https://api.spotify.com/v1";
 
 let currentTrackUris = [];     
 let currentPlaylistName = "";  
 
-// --- 便利ツール ---
 function generateRandomString(length) {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -21,19 +24,24 @@ function generateRandomString(length) {
     return text;
 }
 
-// 🌟 Safari（iPhone/Mac）でのエラー「The string did not match the expected pattern.」を回避するための安全な処理に修正
+// 🌟 Safariのエラーを100%回避する自作の暗号化関数（btoa不使用）
 async function generateCodeChallenge(codeVerifier) {
     const data = new TextEncoder().encode(codeVerifier);
     const digest = await window.crypto.subtle.digest('SHA-256', data);
     const bytes = new Uint8Array(digest);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
+    const base64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let result = "";
+    for (let i = 0; i < bytes.length; i += 3) {
+        const b1 = bytes[i];
+        const b2 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+        const b3 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+        const group = (b1 << 16) | (b2 << 8) | b3;
+        result += base64chars[(group >> 18) & 63];
+        result += base64chars[(group >> 12) & 63];
+        result += i + 1 < bytes.length ? base64chars[(group >> 6) & 63] : "";
+        result += i + 2 < bytes.length ? base64chars[group & 63] : "";
     }
-    return btoa(binary)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
+    return result;
 }
 
 async function fetchUserProfile(accessToken) {
@@ -92,6 +100,8 @@ if (code) {
             localStorage.setItem("spotify_access_token", data.access_token);
             window.history.replaceState({}, document.title, window.location.pathname);
             location.reload(); 
+        } else {
+            console.error("トークン取得失敗", data);
         }
     });
 }
@@ -164,7 +174,7 @@ async function searchMusic(weatherUrl) {
                     </div>
                 `;
             });
-            html += `<button id="playlistBtn" class="btn" style="background:#1DB954; color:white;" onclick="savePlaylist(this)">💾 プレイリストを保存</button>`;
+            html += `<button id="playlistBtn" class="btn" style="background:#1DB954; color:white; border:none;" onclick="savePlaylist(this)">💾 プレイリストを保存</button>`;
         } else {
             html += "<p>条件に合う曲が見つかりませんでした。</p>";
         }
@@ -209,6 +219,6 @@ window.savePlaylist = async function(btn) {
             body: JSON.stringify({ uris: currentTrackUris })
         });
 
-        btn.outerHTML = `<a href="${d1.external_urls.spotify}" target="_blank" class="btn" style="background:#1DB954; color:white; text-decoration:none;">✨ 成功！開く</a>`;
+        btn.outerHTML = `<a href="${d1.external_urls.spotify}" target="_blank" class="btn" style="background:#1DB954; color:white; text-decoration:none; display:block; text-align:center;">✨ 成功！開く</a>`;
     } catch (e) { alert("失敗: " + e.message); btn.innerText = "❌ 失敗"; }
 };
