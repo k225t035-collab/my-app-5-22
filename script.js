@@ -4,46 +4,19 @@ const SPOTIFY_CLIENT_ID = "25fdf849cdf44da99c0730897f152a37";
 const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
 // =========================
 
-// 🌟 URLが自動変換されないための特殊な書き方（これで通信エラーも起きません）
+// URL自動変換回避
 const s1 = "accounts";
 const s2 = "spotify";
 const s3 = "com";
 const s4 = "api";
 const BASE_AUTH_URL = `https://${s1}.${s2}.${s3}/authorize?`;
-const BASE_TOKEN_URL = `https://${s1}.${s2}.${s3}/api/token`;
 const BASE_API_URL = `https://${s4}.${s2}.${s3}/v1`;
 const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
 
 let currentTrackUris = [];     
 let currentPlaylistName = "";  
 
-function generateRandomString(length) {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < length; i++) text += possible.charAt(Math.floor(Math.random() * possible.length));
-    return text;
-}
-
-// 🌟 Safariのエラーを100%回避する自作の暗号化関数（btoa不使用）
-async function generateCodeChallenge(codeVerifier) {
-    const data = new TextEncoder().encode(codeVerifier);
-    const digest = await window.crypto.subtle.digest('SHA-256', data);
-    const bytes = new Uint8Array(digest);
-    const base64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    let result = "";
-    for (let i = 0; i < bytes.length; i += 3) {
-        const b1 = bytes[i];
-        const b2 = i + 1 < bytes.length ? bytes[i + 1] : 0;
-        const b3 = i + 2 < bytes.length ? bytes[i + 2] : 0;
-        const group = (b1 << 16) | (b2 << 8) | b3;
-        result += base64chars[(group >> 18) & 63];
-        result += base64chars[(group >> 12) & 63];
-        result += i + 1 < bytes.length ? base64chars[(group >> 6) & 63] : "";
-        result += i + 2 < bytes.length ? base64chars[group & 63] : "";
-    }
-    return result;
-}
-
+// 👤 ユーザー情報取得
 async function fetchUserProfile(accessToken) {
     try {
         const response = await fetch(`${BASE_API_URL}/me`, {
@@ -57,55 +30,33 @@ async function fetchUserProfile(accessToken) {
     } catch (e) { console.error(e); }
 }
 
-// --- 1. Spotify Login ---
-document.getElementById("loginBtn").addEventListener("click", async () => {
-    const verifier = generateRandomString(128);
-    localStorage.setItem("spotify_verifier", verifier);
-    const challenge = await generateCodeChallenge(verifier);
-
+// --- 1. Spotify Login (暗号化を使わないシンプル連携に変更) ---
+document.getElementById("loginBtn").addEventListener("click", () => {
     const params = new URLSearchParams({
         client_id: SPOTIFY_CLIENT_ID,
-        response_type: 'code',
+        response_type: 'token', // ここが「token」になるのがシンプル連携の証です
         redirect_uri: REDIRECT_URI,
-        scope: 'playlist-modify-public playlist-modify-private', 
-        code_challenge_method: 'S256',
-        code_challenge: challenge,
-        show_dialog: 'true' 
+        scope: 'playlist-modify-public playlist-modify-private'
     });
+    // Spotifyの認証ページへ直接飛ばす
     window.location.href = BASE_AUTH_URL + params.toString(); 
 });
 
-// --- 2. Token Exchange ---
-const urlParams = new URLSearchParams(window.location.search);
-const code = urlParams.get('code');
+// --- 2. Token Exchange (URLのハッシュから直接トークンを受け取る) ---
+// 戻ってきたURL（#access_token=...）から情報を抜き出します
+const hash = window.location.hash.substring(1);
+const urlParams = new URLSearchParams(hash);
+const accessToken = urlParams.get('access_token');
 
-if (code) {
-    const verifier = localStorage.getItem("spotify_verifier");
-    const body = new URLSearchParams({
-        client_id: SPOTIFY_CLIENT_ID,
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: REDIRECT_URI,
-        code_verifier: verifier
-    });
-
-    fetch(BASE_TOKEN_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.access_token) {
-            localStorage.setItem("spotify_access_token", data.access_token);
-            window.history.replaceState({}, document.title, window.location.pathname);
-            location.reload(); 
-        } else {
-            console.error("トークン取得失敗", data);
-        }
-    });
+if (accessToken) {
+    // 取得したトークンを保存
+    localStorage.setItem("spotify_access_token", accessToken);
+    // URLの「#access_token=...」という長い文字列を消して画面をスッキリさせる
+    window.history.replaceState({}, document.title, window.location.pathname);
+    location.reload(); 
 }
 
+// すでに連携済みかどうかのチェック
 const savedToken = localStorage.getItem("spotify_access_token");
 if (savedToken) {
     document.getElementById("loginBtn").innerText = "🔒 連携済み";
@@ -116,7 +67,7 @@ if (savedToken) {
 
 // --- 核心：Recommendations APIによる選曲ロジック ---
 async function searchMusic(weatherUrl) {
-    const accessToken = localStorage.getItem("spotify_access_token");
+    const token = localStorage.getItem("spotify_access_token");
     try {
         const wRes = await fetch(weatherUrl);
         const wData = await wRes.json();
@@ -151,7 +102,7 @@ async function searchMusic(weatherUrl) {
         const recUrl = `${BASE_API_URL}/recommendations?limit=5&seed_genres=${seedGenre}&target_energy=${targetEnergy}&target_valence=${targetValence}&target_acousticness=${targetAcoustic}`;
         
         const sRes = await fetch(recUrl, {
-            headers: { 'Authorization': 'Bearer ' + accessToken }
+            headers: { 'Authorization': 'Bearer ' + token }
         });
         const sData = await sRes.json();
 
