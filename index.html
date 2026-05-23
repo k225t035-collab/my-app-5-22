@@ -8,9 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
 
     <style>
-        /* === 🎨 カラーパレット（モックアップ準拠） === */
+        /* === 🎨 カラーパレット === */
         :root {
-            --bg-main: #0b0f19; /* 深いネイビー */
+            --bg-main: #0b0f19;
             --bg-card: #141b2a;
             --bg-glass: rgba(255, 255, 255, 0.03);
             --border-glass: rgba(255, 255, 255, 0.08);
@@ -111,7 +111,7 @@
                 <defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#a855f7" /><stop offset="100%" stop-color="#3b82f6" /></linearGradient></defs>
                 <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
             </svg>
-            DYNAMIC<span class="v-badge">v4.1</span>
+            DYNAMIC<span class="v-badge">v4.2</span>
         </div>
         <div class="user-info">
             <span id="userProfile" style="display:none;"></span>
@@ -147,11 +147,9 @@
             <div class="city-card" style="background-image: url('https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&q=80')" onclick="selectCity('New York')">
                 <div class="city-info"><h4>New York</h4></div>
             </div>
-            
             <div class="city-card" style="background-image: url('https://images.unsplash.com/photo-1526129318478-62ed807ebdf9?w=400&q=80')" onclick="selectCity('London')">
                 <div class="city-info"><h4>London</h4></div>
             </div>
-            
             <div class="city-card" style="background-image: url('https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=400&q=80')" onclick="selectCity('Sydney')">
                 <div class="city-info"><h4>Sydney</h4></div>
             </div>
@@ -222,22 +220,53 @@
             const hour = localTime.getHours();
             const minutes = String(localTime.getMinutes()).padStart(2, '0');
 
-            let timeTag = "night chill";
-            let moodLabel = "Lo-fi / Jazz / Chill";
-            let moodDesc = "夜の静けさと一緒に、心を落ち着けるサウンドを。";
-            
-            if (hour >= 5 && hour < 11) { timeTag = "morning acoustic energetic"; moodLabel = "Acoustic / Fresh"; moodDesc = "新しい一日を彩る、爽やかな朝のプレイリスト。"; }
-            else if (hour >= 11 && hour < 16) { timeTag = "afternoon pop happy"; moodLabel = "Pop / Sunny Vibes"; moodDesc = "明るい日差しにぴったりのアップテンポな曲。"; }
-            else if (hour >= 16 && hour < 19) { timeTag = "sunset twilight r&b"; moodLabel = "R&B / Twilight"; moodDesc = "夕暮れの街並みに溶け込む、エモーショナルな選曲。"; }
+            // 🎲 ランダムピッカー関数
+            const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-            let weatherTag = "chill";
+            // ⏰ 時間帯ごとのキーワードプール
+            let timeMoods, moodLabel, moodDesc;
+            if (hour >= 5 && hour < 11) { 
+                timeMoods = ["morning acoustic", "fresh pop", "sunrise piano", "coffee chill"]; 
+                moodLabel = "Acoustic / Fresh"; 
+                moodDesc = "新しい一日を彩る、爽やかな朝のプレイリスト。"; 
+            } else if (hour >= 11 && hour < 16) { 
+                timeMoods = ["afternoon chill", "sunny pop", "happy vibes", "breezy acoustic"]; 
+                moodLabel = "Pop / Sunny Vibes"; 
+                moodDesc = "明るい日差しにぴったりのアップテンポな曲。"; 
+            } else if (hour >= 16 && hour < 19) { 
+                timeMoods = ["sunset r&b", "twilight jazz", "evening chill", "lofi sunset"]; 
+                moodLabel = "R&B / Twilight"; 
+                moodDesc = "夕暮れの街並みに溶け込む、エモーショナルな選曲。"; 
+            } else {
+                timeMoods = ["night chill", "midnight lofi", "late night jazz", "ambient dark"];
+                moodLabel = "Lo-fi / Jazz / Chill";
+                moodDesc = "夜の静けさと一緒に、心を落ち着けるサウンドを。";
+            }
+
+            // 🌤️ 天気ごとのキーワードプール
+            let weatherMoods = ["lofi chill", "indie folk", "cloudy pop"]; // デフォルト（曇りなど）
             let weatherIcon = "☁️";
-            if (weather === "Clear") { weatherTag = temp >= 25 ? "summer energetic" : "happy breezy"; weatherIcon = "☀️"; }
-            else if (weather === "Rain") { weatherTag = "rainy jazz piano"; weatherIcon = "🌧️"; }
-            else if (weather === "Snow") { weatherTag = "winter ambient"; weatherIcon = "❄️"; }
+            
+            if (weather === "Clear") { 
+                weatherMoods = temp >= 25 ? ["summer energetic", "tropical house", "upbeat pop"] : ["happy breezy", "feel good", "acoustic bright"]; 
+                weatherIcon = "☀️"; 
+            } else if (weather === "Rain" || weather === "Drizzle" || weather === "Thunderstorm") { 
+                weatherMoods = ["rainy jazz", "piano melancholy", "lofi rain", "acoustic rain"]; 
+                weatherIcon = "🌧️"; 
+            } else if (weather === "Snow") { 
+                weatherMoods = ["winter ambient", "snowy piano", "chillhop winter"]; 
+                weatherIcon = "❄️"; 
+            }
 
+            // キーワードをランダムに選択して合体
+            const timeTag = pickRandom(timeMoods);
+            const weatherTag = pickRandom(weatherMoods);
             const q = `${weatherTag} ${timeTag}`;
-            const sRes = await fetch(`${BASE_API_URL}/search?q=${encodeURIComponent(q)}&type=track&limit=8`, {
+
+            // 🎲 オフセット（検索結果の何番目から取得するか）を 0〜30 の間でランダム化
+            const randomOffset = Math.floor(Math.random() * 30);
+
+            const sRes = await fetch(`${BASE_API_URL}/search?q=${encodeURIComponent(q)}&type=track&limit=8&offset=${randomOffset}`, {
                 headers: { 'Authorization': 'Bearer ' + token }
             });
             const sData = await sRes.json();
