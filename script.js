@@ -46,7 +46,7 @@ async function searchMusic(weatherUrl) {
     try {
         const wRes = await fetch(weatherUrl);
         const wData = await wRes.json();
-        if (wData.cod !== 200) throw new Error("都市が見念のためローマ字で入力してください");
+        if (wData.cod !== 200) throw new Error("都市が見つかりません。念のためローマ字で入力してください");
 
         const weather = wData.weather[0].main;
         const temp = Math.round(wData.main.temp);
@@ -90,7 +90,8 @@ async function searchMusic(weatherUrl) {
                 </div>`;
         });
 
-        html += `<button class="btn btn-spotify" onclick='savePlaylist("${cityName} Weather", ${JSON.stringify(trackUris)})'>💾 プレイリストを保存</button>`;
+        // 🌟 修正ポイント：ボタンに自身（this）を渡して、後からリンクに変えられるようにする
+        html += `<button class="btn btn-spotify" onclick='savePlaylist(this, "${cityName} Weather", ${JSON.stringify(trackUris)})'>💾 プレイリストを保存</button>`;
         resultDiv.innerHTML = html;
 
     } catch (e) { 
@@ -156,20 +157,36 @@ document.getElementById("gpsBtn").addEventListener("click", () => {
     });
 });
 
-window.savePlaylist = async function(name, uris) {
+// 🌟 修正ポイント：保存処理後にそのまま自動でSpotifyを開く
+window.savePlaylist = async function(btn, name, uris) {
     const token = localStorage.getItem("spotify_access_token");
+    const originalText = btn.innerText;
+    btn.innerText = "⏳ 保存中...";
+    
     try {
         const r1 = await fetch(`${BASE_API_URL}/me/playlists`, {
             method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: name, public: false })
         });
         const d1 = await r1.json();
+        
         await fetch(`${BASE_API_URL}/playlists/${d1.id}/items`, {
             method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
             body: JSON.stringify({ uris })
         });
-        alert("プレイリストを保存しました！");
-    } catch (e) { alert("保存失敗: " + e.message); }
+        
+        const spotifyUrl = d1.external_urls.spotify;
+        
+        // ボタンを「開く」リンクに置き換える
+        btn.outerHTML = `<a href="${spotifyUrl}" target="_blank" class="btn btn-spotify" style="text-decoration:none; display:flex; justify-content:center; background:#1ed760; color:black;">✨ 成功！Spotifyで開く</a>`;
+        
+        // そのまま自動で別タブ（またはアプリ）で開く
+        window.open(spotifyUrl, '_blank');
+        
+    } catch (e) { 
+        alert("保存失敗: " + e.message); 
+        btn.innerText = originalText;
+    }
 };
 
 document.getElementById("clearBtn").addEventListener("click", () => { localStorage.clear(); location.reload(); });
