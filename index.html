@@ -3,119 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather Beats 2.0</title>
+    <title>WEATHER RESONANCE // 空間同期オーディオ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --spotify-green: #1DB954;
-            --trip-purple: #7c4dff;
-            --bg-dark: #121212;
-            --glass-bg: rgba(255, 255, 255, 0.08);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --spotify-green: #1ed760;
+            --trip-purple: #9d4edd;
+            --bg-dark: #0a0a0c;
+            --card-bg: rgba(20, 20, 28, 0.6);
+            --text-main: #f8f9fa;
         }
 
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: var(--bg-dark); 
-            color: #fff; 
-            padding: 20px;
-            margin: 0;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 40px 20px;
+            overflow-x: hidden;
+            transition: background 1.5s ease;
         }
 
-        .container { 
-            max-width: 500px; 
+        .container {
             width: 100%;
-            background: linear-gradient(145deg, #1e1e1e, #121212);
+            max-width: 680px;
+            background: rgba(10, 10, 12, 0.4);
+            border-radius: 24px;
             padding: 30px;
-            border-radius: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        h2 { text-align: center; font-weight: 800; letter-spacing: -1px; margin-bottom: 30px; }
+        header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
 
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            padding: 20px;
-            border-radius: 15px;
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 1.8rem;
+            letter-spacing: 4px;
+            background: linear-gradient(90deg, #fff, rgba(255,255,255,0.4));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 2px;
+            font-weight: 500;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .btn-spotify {
+            background: var(--spotify-green);
+            color: #000;
+            box-shadow: 0 4px 20px rgba(30, 215, 96, 0.3);
+        }
+        .btn-spotify:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(30, 215, 96, 0.5);
+        }
+
+        .btn-purple {
+            background: linear-gradient(135deg, #7b2cbf, #5a189a);
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(123, 44, 191, 0.3);
+        }
+        .btn-purple:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(123, 44, 191, 0.5);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        #weatherAppSection, #actionSection { display: none; }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
             margin-bottom: 20px;
         }
 
-        .btn { 
-            display: flex; align-items: center; justify-content: center;
-            padding: 14px; margin: 8px 0; border-radius: 50px; border: none; 
-            cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s;
+        input {
+            flex: 1;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 16px;
+            border-radius: 12px;
+            color: #fff;
             font-size: 1rem;
+            outline: none;
+            font-family: inherit;
+            transition: all 0.3s;
         }
-        
-        .btn-spotify { background: var(--spotify-green); color: black; }
-        .btn-spotify:hover { transform: scale(1.02); background: #1ed760; }
-        
-        /* 🌟 現在地ボタンの専用デザイン */
-        .btn-gps { background: transparent; color: var(--spotify-green); border: 2px solid var(--spotify-green); }
-        .btn-gps:hover { background: rgba(29, 185, 84, 0.1); transform: translateY(-2px); }
-
-        .btn-weather { background: #333; color: white; border: 1px solid #555; }
-        .btn-weather:hover { background: #444; }
-
-        .btn-trip { background: var(--trip-purple); color: white; box-shadow: 0 4px 15px rgba(124, 77, 255, 0.3); }
-        .btn-trip:hover { background: #9575cd; transform: translateY(-2px); }
-
-        input { 
-            width: 100%; padding: 14px; margin: 10px 0; border-radius: 10px; 
-            border: 1px solid #444; box-sizing: border-box; background: #222; color: white;
-            outline: none; transition: 0.3s;
+        input:focus {
+            border-color: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.08);
         }
-        input:focus { border-color: var(--spotify-green); }
 
-        #weatherAppSection { display: none; margin-top: 20px; border-top: 1px solid #333; padding-top: 20px; }
+        .city-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 25px;
+        }
 
-        #loading { text-align: center; color: var(--spotify-green); display: none; padding: 20px; font-weight: bold; }
+        .chip {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: rgba(255,255,255,0.7);
+        }
+        .chip:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border-color: rgba(255,255,255,0.2);
+        }
 
-        .divider { text-align: center; margin: 15px 0; color: #888; font-size: 0.85rem; position: relative; }
-        .divider::before, .divider::after { content: ""; position: absolute; top: 50%; width: 40%; height: 1px; background: #333; }
-        .divider::before { left: 0; }
-        .divider::after { right: 0; }
+        .loader-container {
+            display: none;
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top-color: var(--spotify-green);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        @media(min-width: 480px) {
+            .results-grid { grid-template-columns: 1fr 1fr; }
+        }
 
         .track-card {
-            display: flex; align-items: center; margin-bottom: 12px; background: rgba(255,255,255,0.05); 
-            padding: 12px; border-radius: 12px; transition: 0.2s;
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.03);
+            transition: all 0.3s;
         }
-        .track-card:hover { background: rgba(255,255,255,0.1); }
-        .track-img { width: 55px; height: 55px; border-radius: 8px; margin-right: 15px; }
+        .track-card:hover {
+            transform: translateY(-2px);
+            background: rgba(30,30,40,0.8);
+            border-color: rgba(255,255,255,0.1);
+        }
 
-        .btn-clear { background: none; color: #666; font-size: 0.8rem; text-decoration: underline; margin-top: 40px; border: none; cursor: pointer; width: 100%; }
+        .track-img {
+            width: 54px;
+            height: 54px;
+            border-radius: 8px;
+            margin-right: 14px;
+            object-fit: cover;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .track-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .track-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 2px;
+        }
+
+        .track-artist {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.5);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .track-link {
+            font-size: 0.65rem;
+            color: var(--spotify-green);
+            text-decoration: none;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        #userProfile {
+            text-align: center;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.3);
+            margin-top: 25px;
+            font-weight: 700;
+        }
+
+        .footer-actions {
+            margin-top: 40px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            padding-top: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Weather Beats <span style="color:var(--spotify-green)">2.0</span></h2>
-        
-        <div id="userProfile" class="glass-panel" style="display:none; text-align:center;"></div>
 
-        <button id="loginBtn" class="btn btn-spotify">Spotifyと連携する</button>
+<div class="container">
+    <header>
+        <h1>WEATHER RESONANCE</h1>
+        <div class="subtitle">ENVIRONMENTAL AUDIO SYNCHRONIZER</div>
+    </header>
 
-        <div id="weatherAppSection">
-            <button id="gpsBtn" class="btn btn-gps">📍 ワンタップで現在地の天気から選曲</button>
-            
-            <div class="divider">または</div>
+    <button id="loginBtn" class="btn btn-spotify">SPOTIFY アカウントを同期</button>
 
-            <div class="glass-panel">
-                <input type="text" id="cityInput" placeholder="都市名をローマ字で入力 (例: Tokyo)">
-                <button id="getWeatherBtn" class="btn btn-weather">入力した都市の天気で選曲</button>
-            </div>
-
-            <button id="tripBtn" class="btn btn-trip">🌍 世界のどこかへ音のトリップ</button>
-
-            <div id="loading">🎵 選曲中...</div>
-            <div id="result"></div>
+    <div id="weatherAppSection">
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="都市名を英語で入力 (例: Tokyo, London)">
+            <button id="getWeatherBtn" class="btn btn-outline" style="width: auto; padding: 0 25px;">SCAN</button>
         </div>
 
-        <button id="clearBtn" class="btn btn-clear">キャッシュをクリアしてやり直す</button>
+        <div class="city-chips">
+            <div class="chip" onclick="selectCity('Reykjavik')">レイキャビク 🇮🇸</div>
+            <div class="chip" onclick="selectCity('Honolulu')">ホノルル 🇺🇸</div>
+            <div class="chip" onclick="selectCity('Tokyo')">東京 🇯🇵</div>
+            <div class="chip" onclick="selectCity('London')">ロンドン 🇬🇧</div>
+            <div class="chip" onclick="selectCity('Rio de Janeiro')">リオ 🇧🇷</div>
+        </div>
     </div>
 
-    <script src="script.js?ver=2.7"></script>
+    <div id="actionSection" style="margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button id="gpsBtn" class="btn btn-outline" style="font-size: 0.85rem; padding: 14px;">📡 現在地をトラッキング</button>
+            <button id="tripBtn" class="btn btn-purple" style="font-size: 0.85rem; padding: 14px;">🎲 次元転移（ランダム）</button>
+        </div>
+    </div>
+
+    <div class="loader-container" id="loaderContainer">
+        <div class="spinner"></div>
+        <div id="loadingText" style="font-size: 0.9rem; rgba(255,255,255,0.7); line-height: 1.6;"></div>
+    </div>
+
+    <div id="initialGuidance" style="text-align: center; padding: 40px 0; color: rgba(255,255,255,0.25); font-size: 0.85rem; letter-spacing: 1px; line-height: 1.6; border: 1px dashed rgba(255,255,255,0.05); border-radius: 14px;">
+        システム待機中...<br>都市を選択するかスキャンを開始してください。
+    </div>
+
+    <div id="result"></div>
+
+    <div id="userProfile"></div>
+
+    <div class="footer-actions">
+        <button id="clearBtn" class="btn btn-outline" style="font-size: 0.75rem; padding: 8px 16px; width: auto; margin: 0 auto; color: rgba(255,0,0,0.5); border-color: rgba(255,0,0,0.15);">⚠️ セッションを強制終了（キャッシュクリア）</button>
+    </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
