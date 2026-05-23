@@ -68,7 +68,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
         scope: 'playlist-modify-public playlist-modify-private', 
         code_challenge_method: 'S256',
         code_challenge: challenge,
-        show_dialog: 'true' // 🌟 強制的に同意画面を出す命令を追加！
+        show_dialog: 'true' 
     });
     window.location.href = BASE_AUTH_URL + params.toString(); 
 });
@@ -215,15 +215,8 @@ window.saveToSpotifyPlaylist = async function(btn) {
     btn.disabled = true;
 
     try {
-        const meResponse = await fetch(`${BASE_API_URL}/me`, {
-            headers: { 'Authorization': 'Bearer ' + accessToken }
-        });
-        if (!meResponse.ok) throw new Error(`【ユーザー情報取得失敗】エラーコード: ${meResponse.status}`);
-        
-        const meData = await meResponse.json();
-        const safeUserId = encodeURIComponent(meData.id);
-
-        const createPlaylistResponse = await fetch(`${BASE_API_URL}/users/${safeUserId}/playlists`, {
+        // 🌟 ここが最大の修正点：2026年最新ルールの「/me/playlists」へアクセス！
+        const createPlaylistResponse = await fetch(`${BASE_API_URL}/me/playlists`, {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + accessToken,
@@ -236,17 +229,17 @@ window.saveToSpotifyPlaylist = async function(btn) {
             })
         });
 
-        // 🌟 ここを修正：Spotifyの「生のエラーメッセージ」を抽出するようにしました！
         if (!createPlaylistResponse.ok) {
             const errorData = await createPlaylistResponse.json();
-            throw new Error(`【Spotify生エラー】\nStatus: ${errorData.error.status}\nMessage: ${errorData.error.message}`);
+            throw new Error(`【Spotify生エラー (作成時)】\nStatus: ${errorData.error.status}\nMessage: ${errorData.error.message}`);
         }
 
         const playlistData = await createPlaylistResponse.json();
         const playlistId = playlistData.id;
         const playlistUrl = playlistData.external_urls.spotify; 
 
-        const addTracksResponse = await fetch(`${BASE_API_URL}/playlists/${playlistId}/tracks`, {
+        // 🌟 ここも最新ルール：「/tracks」ではなく「/items」へアクセス！
+        const addTracksResponse = await fetch(`${BASE_API_URL}/playlists/${playlistId}/items`, {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + accessToken,
@@ -257,7 +250,7 @@ window.saveToSpotifyPlaylist = async function(btn) {
 
         if (!addTracksResponse.ok) {
             const trackErrorData = await addTracksResponse.json();
-            throw new Error(`【曲の追加エラー】\nMessage: ${trackErrorData.error.message}`);
+            throw new Error(`【Spotify生エラー (曲追加時)】\nStatus: ${trackErrorData.error.status}\nMessage: ${trackErrorData.error.message}`);
         }
 
         btn.outerHTML = `
