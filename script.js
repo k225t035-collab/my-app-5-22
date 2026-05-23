@@ -1,11 +1,12 @@
-// ====== CONFIG ======
+// ====== CONFIG（バグ対策・強制結合版） ======
 const WEATHER_API_KEY = "6569f9193b1871a2521eeb1bb5ffc92a";
 const SPOTIFY_CLIENT_ID = "25fdf849cdf44da99c0730897f152a37";
 const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
 
-const BASE_AUTH_URL = "https://accounts.spotify.com/authorize?";
-const BASE_TOKEN_URL = "https://accounts.spotify.com/api/token";
-const BASE_API_URL = "https://api.spotify.com/v1";
+// 🌟 あなたの環境で100%成功していたURL記述に完全に書き戻しました
+const BASE_AUTH_URL = "https://" + "accounts." + "spotify.com/authorize?";
+const BASE_TOKEN_URL = "https://" + "accounts." + "spotify.com/api/token";
+const BASE_API_URL = "https://" + "api." + "spotify.com/v1";
 const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
 
 const WORLD_CITIES = ["London", "Paris", "New York", "Reykjavik", "Honolulu", "Cairo", "Sydney", "Bangkok", "Rio de Janeiro", "Berlin"];
@@ -55,7 +56,6 @@ async function searchMusic(weatherUrl) {
         const temp = Math.round(wData.main.temp);
         const cityName = wData.name;
 
-        // 時間帯の自動判定
         const hour = new Date().getHours();
         let timeTag = "night mellow";
         let timeLabel = "🌌 深夜の静寂";
@@ -95,6 +95,7 @@ async function searchMusic(weatherUrl) {
             });
         }
 
+        // 🌟 成功実績のある引数形式でボタンを生成
         html += `<button class="btn btn-spotify" onclick='savePlaylist(this, "${cityName} Weather", ${JSON.stringify(trackUris)})'>💾 プレイリストを保存</button>`;
         if (resultDiv) resultDiv.innerHTML = html;
 
@@ -105,7 +106,7 @@ async function searchMusic(weatherUrl) {
 }
 
 // --- EVENTS ---
-// 🌟 エラーで全体が止まらないよう、各ボタンの存在チェック（if文）を徹底強化
+// ボタンの有無でフリーズしない安全チェック付き
 const loginBtn = document.getElementById("loginBtn");
 if (loginBtn) {
     loginBtn.addEventListener("click", async () => {
@@ -195,7 +196,7 @@ if (tripBtn) {
     });
 }
 
-// プレイリスト保存（成功実績のある記述）
+// 🌟 100% 成功実績のある「/me/playlists」で作って「/items」で追加する処理
 window.savePlaylist = async function(btn, name, uris) {
     const token = localStorage.getItem("spotify_access_token");
     const originalText = btn.innerText;
@@ -211,6 +212,7 @@ window.savePlaylist = async function(btn, name, uris) {
         
         if (!r1.ok) throw new Error(d1.error ? d1.error.message : "枠の作成に失敗しました");
         
+        // 🌟 あなたの環境で成功したエンドポイント（/items）
         const r2 = await fetch(`${BASE_API_URL}/playlists/${d1.id}/items`, {
             method: 'POST', 
             headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -232,7 +234,7 @@ window.savePlaylist = async function(btn, name, uris) {
     }
 };
 
-// キャッシュクリアボタン（HTML側にボタンが存在しなくても絶対にフリーズしない安全設計）
+// キャッシュクリアボタン
 const clearBtn = document.getElementById("clearBtn") || document.getElementById("clear");
 if (clearBtn) {
     clearBtn.addEventListener("click", () => { 
