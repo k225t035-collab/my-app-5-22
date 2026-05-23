@@ -12,6 +12,12 @@ const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
 let currentTrackUris = [];     
 let currentPlaylistName = "";  
 
+// 🌟 世界のランダム都市リスト（気候が特徴的な都市をチョイス）
+const WORLD_CITIES = [
+    "London", "Paris", "New York", "Reykjavik", "Honolulu", 
+    "Cairo", "Sydney", "Bangkok", "Rovaniemi", "Rio de Janeiro"
+];
+
 // --- 便利ツール ---
 function generateRandomString(length) {
     let text = '';
@@ -98,7 +104,7 @@ if (savedToken) {
     fetchUserProfile(savedToken);
 }
 
-// --- 核心：検索と表示（ジャンル廃止・完全お任せ版） ---
+// --- 核心：検索と表示（お任せ天気＋時間帯ミックス版） ---
 async function searchMusic(weatherUrl) {
     const accessToken = localStorage.getItem("spotify_access_token");
     if (!accessToken) {
@@ -114,31 +120,56 @@ async function searchMusic(weatherUrl) {
         const weather = wData.weather[0].main;
         const temp = Math.round(wData.main.temp);
 
-        // 🌟 気温と天気によるムード判定（ここで全自動でキーワードを決定します）
-        let mood = "vibe";
+        // 🌟 【機能2】時間帯の自動判定（朝・昼・夕方・夜）
+        const hour = new Date().getHours();
+        let timeTag = "";
+        let timeDisplay = "";
+
+        if (hour >= 5 && hour < 11) {
+            timeTag = "morning refreshing awake";
+            timeDisplay = "🌅 朝の爽やか";
+        } else if (hour >= 11 && hour < 16) {
+            timeTag = "afternoon sunny bright";
+            timeDisplay = "☀️ お昼の快適";
+        } else if (hour >= 16 && hour < 19) {
+            timeTag = "sunset twilight chill";
+            timeDisplay = "🌆 夕方のエモい";
+        } else {
+            timeTag = "night midnight mellow sleepy";
+            timeDisplay = "🌌 夜のディープ";
+        }
+
+        // 基本の天気判定
+        let weatherTag = "vibe";
         if (weather === "Clear") {
-            if (temp >= 26) mood = "summer upbeat energetic";
-            else if (temp >= 15) mood = "happy drive breeze";
-            else mood = "acoustic chill relaxing";
+            if (temp >= 26) weatherTag = "summer upbeat energetic";
+            else if (temp >= 15) weatherTag = "happy drive breeze";
+            else weatherTag = "acoustic chill relaxing";
         } else if (weather === "Rain") {
-            mood = temp >= 20 ? "mellow rain" : "rainy day jazz piano";
+            weatherTag = temp >= 20 ? "mellow rain" : "rainy day jazz piano";
         } else if (weather === "Clouds") {
-            mood = "lofi ambient chill";
+            weatherTag = "lofi ambient chill";
         } else if (weather === "Snow") {
-            mood = "ambient winter piano";
+            weatherTag = "ambient winter piano";
         }
 
         currentPlaylistName = `Weather: ${wData.name} (${temp}℃ / ${weather})`;
         
-        // 検索クエリ（ジャンルなし、ムードのみ）
-        const q = mood;
+        // 🌟 天気キーワードと時間帯キーワードを合体させて検索！
+        const q = `${weatherTag} ${timeTag}`;
 
         const sRes = await fetch(`${BASE_API_URL}/search?q=${encodeURIComponent(q)}&type=track&limit=5`, {
             headers: { 'Authorization': 'Bearer ' + accessToken }
         });
         const sData = await sRes.json();
 
-        let html = `<h4 style="text-align:center; margin-bottom: 20px;">☁️ ${wData.name}: ${temp}℃ (${weather})</h4>`;
+        // 画面に「時間帯の判定結果」もちょっとオシャレに表示
+        let html = `
+            <div style="text-align:center; margin-bottom: 20px;">
+                <h4 style="margin: 5px 0;">☁️ ${wData.name}: ${temp}℃ (${weather})</h4>
+                <span style="font-size:0.8rem; background:#444; padding:3px 8px; border-radius:20px; color:#1DB954;">${timeDisplay}モード選曲</span>
+            </div>
+        `;
         currentTrackUris = [];
 
         if (sData.tracks && sData.tracks.items.length > 0) {
@@ -178,6 +209,14 @@ document.getElementById("gpsBtn").addEventListener("click", () => {
     }, () => {
         alert("位置情報の取得に失敗しました。都市名を入力して検索してください。");
     });
+});
+
+// 🌟 【機能1】世界トリップボタンの処理
+document.getElementById("tripBtn").addEventListener("click", () => {
+    const randomCity = WORLD_CITIES[Math.floor(Math.random() * WORLD_CITIES.length)];
+    // 検索入力欄にも都市名を自動で入れてあげる（親切設計）
+    document.getElementById("cityInput").value = randomCity;
+    searchMusic(`${BASE_WEATHER_URL}q=${randomCity}&appid=${WEATHER_API_KEY}&units=metric`);
 });
 
 document.getElementById("clearBtn").addEventListener("click", () => {
