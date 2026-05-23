@@ -3,7 +3,7 @@ const WEATHER_API_KEY = "6569f9193b1871a2521eeb1bb5ffc92a";
 const SPOTIFY_CLIENT_ID = "25fdf849cdf44da99c0730897f152a37";
 const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
 
-// 🌟 あなたの環境で100%成功していたURL記述に完全に書き戻しました
+// 🌟 あなたの環境で100%成功していたURL記述
 const BASE_AUTH_URL = "https://" + "accounts." + "spotify.com/authorize?";
 const BASE_TOKEN_URL = "https://" + "accounts." + "spotify.com/api/token";
 const BASE_API_URL = "https://" + "api." + "spotify.com/v1";
@@ -95,7 +95,6 @@ async function searchMusic(weatherUrl) {
             });
         }
 
-        // 🌟 成功実績のある引数形式でボタンを生成
         html += `<button class="btn btn-spotify" onclick='savePlaylist(this, "${cityName} Weather", ${JSON.stringify(trackUris)})'>💾 プレイリストを保存</button>`;
         if (resultDiv) resultDiv.innerHTML = html;
 
@@ -105,8 +104,14 @@ async function searchMusic(weatherUrl) {
     }
 }
 
+// 🌟 復活：都市チップをクリックしたときに動く関数
+window.selectCity = function(cityName) {
+    const cityInput = document.getElementById("cityInput");
+    if (cityInput) cityInput.value = cityName;
+    searchMusic(`${BASE_WEATHER_URL}q=${cityName}&appid=${WEATHER_API_KEY}&units=metric`);
+};
+
 // --- EVENTS ---
-// ボタンの有無でフリーズしない安全チェック付き
 const loginBtn = document.getElementById("loginBtn");
 if (loginBtn) {
     loginBtn.addEventListener("click", async () => {
@@ -196,7 +201,7 @@ if (tripBtn) {
     });
 }
 
-// 🌟 100% 成功実績のある「/me/playlists」で作って「/items」で追加する処理
+// プレイリスト保存処理
 window.savePlaylist = async function(btn, name, uris) {
     const token = localStorage.getItem("spotify_access_token");
     const originalText = btn.innerText;
@@ -212,7 +217,6 @@ window.savePlaylist = async function(btn, name, uris) {
         
         if (!r1.ok) throw new Error(d1.error ? d1.error.message : "枠の作成に失敗しました");
         
-        // 🌟 あなたの環境で成功したエンドポイント（/items）
         const r2 = await fetch(`${BASE_API_URL}/playlists/${d1.id}/items`, {
             method: 'POST', 
             headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
