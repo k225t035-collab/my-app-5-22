@@ -174,12 +174,22 @@ async function fetchWeatherAndMusic(weatherUrl) {
                 const albumImg = track.album.images[0] ? track.album.images[0].url : "";
                 currentTrackUris.push(track.uri);
                 
+                // 🌟 ここを変更：オーディオプレイヤーを廃止し、「Spotifyで開く」ボタンを作成
+                const trackSpotifyUrl = track.external_urls.spotify;
+                
                 htmlContent += `
-                    <li style="display: flex; align-items: center; background: rgba(0,0,0,0.3); margin-bottom: 15px; padding: 10px; border-radius: 12px;">
-                        <img src="${albumImg}" alt="Album Art" style="width: 55px; height: 55px; border-radius: 8px; margin-right: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-                        <div style="flex-grow: 1; text-align: left; overflow: hidden;">
-                            <strong style="font-size: 1rem; display: block; margin-bottom: 3px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.name}</strong>
-                            <span style="font-size: 0.8rem; color: #b3b3b3; display: block; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.artists[0].name}</span>
+                    <li style="display: flex; flex-direction: column; background: rgba(0,0,0,0.3); margin-bottom: 15px; padding: 12px; border-radius: 12px;">
+                        <div style="display: flex; align-items: center; width: 100%;">
+                            <img src="${albumImg}" alt="Album Art" style="width: 55px; height: 55px; border-radius: 8px; margin-right: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                            <div style="flex-grow: 1; text-align: left; overflow: hidden;">
+                                <strong style="font-size: 1rem; display: block; margin-bottom: 3px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.name}</strong>
+                                <span style="font-size: 0.8rem; color: #b3b3b3; display: block; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.artists[0].name}</span>
+                            </div>
+                        </div>
+                        <div style="width: 100%; text-align: right; margin-top: 10px;">
+                            <a href="${trackSpotifyUrl}" target="_blank" style="display: inline-block; background-color: #1DB954; color: white; padding: 6px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+                                ▶︎ Spotifyでフル再生
+                            </a>
                         </div>
                     </li>
                 `;
@@ -187,7 +197,7 @@ async function fetchWeatherAndMusic(weatherUrl) {
 
             htmlContent += `
                 </ul>
-                <button id="playlistBtn" class="btn" onclick="saveToSpotifyPlaylist(this)">💾 この5曲をSpotifyに保存</button>
+                <button id="playlistBtn" class="btn" style="margin-top: 20px;" onclick="saveToSpotifyPlaylist(this)">💾 この5曲をプレイリストに保存</button>
             `;
         } else {
             htmlContent += "<li>曲が見つかりませんでした。</li></ul>";
@@ -207,6 +217,25 @@ document.getElementById("getWeatherBtn").addEventListener("click", () => {
     fetchWeatherAndMusic(weatherUrl);
 });
 
+document.getElementById("gpsBtn").addEventListener("click", () => {
+    if (!navigator.geolocation) return alert("お使いのブラウザはGPSに対応していません");
+    
+    document.getElementById("result").innerHTML = "<p style='text-align:center;'>📍 現在地を特定中...</p>";
+    
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const safeApiKey = encodeURIComponent(WEATHER_API_KEY.trim());
+            const weatherUrl = BASE_WEATHER_URL + `lat=${lat}&lon=${lon}&appid=${safeApiKey}&units=metric`;
+            fetchWeatherAndMusic(weatherUrl);
+        },
+        (error) => {
+            document.getElementById("result").innerHTML = `<p style="color: #ff6b6b;">GPS取得失敗: ${error.message}</p>`;
+        }
+    );
+});
+
 window.saveToSpotifyPlaylist = async function(btn) {
     const accessToken = localStorage.getItem("spotify_access_token");
     if (currentTrackUris.length === 0) return;
@@ -215,7 +244,6 @@ window.saveToSpotifyPlaylist = async function(btn) {
     btn.disabled = true;
 
     try {
-        // 🌟 ここが最大の修正点：2026年最新ルールの「/me/playlists」へアクセス！
         const createPlaylistResponse = await fetch(`${BASE_API_URL}/me/playlists`, {
             method: 'POST',
             headers: {
@@ -238,7 +266,6 @@ window.saveToSpotifyPlaylist = async function(btn) {
         const playlistId = playlistData.id;
         const playlistUrl = playlistData.external_urls.spotify; 
 
-        // 🌟 ここも最新ルール：「/tracks」ではなく「/items」へアクセス！
         const addTracksResponse = await fetch(`${BASE_API_URL}/playlists/${playlistId}/items`, {
             method: 'POST',
             headers: {
@@ -255,7 +282,7 @@ window.saveToSpotifyPlaylist = async function(btn) {
 
         btn.outerHTML = `
             <a href="${playlistUrl}" target="_blank" class="btn" style="background-color: #1DB954; color: white; text-decoration: none; display: block; text-align: center; margin-top: 15px; box-shadow: 0 4px 15px rgba(29, 185, 84, 0.4);">
-                ✨ 保存完了！ここをタップして開く
+                ✨ 保存完了！ここをタップしてプレイリストを開く
             </a>
         `;
 
