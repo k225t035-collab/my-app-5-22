@@ -53,6 +53,10 @@
         .btn-spotify { background: var(--spotify-green); color: black; }
         .btn-spotify:hover { transform: scale(1.02); background: #1ed760; }
         
+        /* 🌟 現在地ボタンの専用デザイン */
+        .btn-gps { background: transparent; color: var(--spotify-green); border: 2px solid var(--spotify-green); }
+        .btn-gps:hover { background: rgba(29, 185, 84, 0.1); transform: translateY(-2px); }
+
         .btn-weather { background: #333; color: white; border: 1px solid #555; }
         .btn-weather:hover { background: #444; }
 
@@ -68,7 +72,12 @@
 
         #weatherAppSection { display: none; margin-top: 20px; border-top: 1px solid #333; padding-top: 20px; }
 
-        #loading { text-align: center; color: var(--spotify-green); display: none; padding: 20px; font-style: italic; }
+        #loading { text-align: center; color: var(--spotify-green); display: none; padding: 20px; font-weight: bold; }
+
+        .divider { text-align: center; margin: 15px 0; color: #888; font-size: 0.85rem; position: relative; }
+        .divider::before, .divider::after { content: ""; position: absolute; top: 50%; width: 40%; height: 1px; background: #333; }
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
 
         .track-card {
             display: flex; align-items: center; margin-bottom: 12px; background: rgba(255,255,255,0.05); 
@@ -89,10 +98,13 @@
         <button id="loginBtn" class="btn btn-spotify">Spotifyと連携する</button>
 
         <div id="weatherAppSection">
+            <button id="gpsBtn" class="btn btn-gps">📍 ワンタップで現在地の天気から選曲</button>
+            
+            <div class="divider">または</div>
+
             <div class="glass-panel">
                 <input type="text" id="cityInput" placeholder="都市名をローマ字で入力 (例: Tokyo)">
-                <button id="getWeatherBtn" class="btn btn-weather">今の天気から選曲</button>
-                <button id="gpsBtn" class="btn btn-weather">📍 現在地の天気で探す</button>
+                <button id="getWeatherBtn" class="btn btn-weather">入力した都市の天気で選曲</button>
             </div>
 
             <button id="tripBtn" class="btn btn-trip">🌍 世界のどこかへ音のトリップ</button>
@@ -104,6 +116,6 @@
         <button id="clearBtn" class="btn btn-clear">キャッシュをクリアしてやり直す</button>
     </div>
 
-    <script src="script.js?ver=2.2"></script>
+    <script src="script.js?ver=2.3"></script>
 </body>
 </html>
