@@ -49,7 +49,7 @@ async function fetchUserProfile(accessToken) {
         const data = await response.json();
         const profileDiv = document.getElementById("userProfile");
         
-        profileDiv.innerText = `👤 ログイン中: ${data.display_name} (${data.id})`;
+        profileDiv.innerText = `👤 ${data.display_name} (${data.id})`;
         profileDiv.style.display = "block"; 
     } catch (error) {
         console.error("ユーザー情報の取得に失敗:", error);
@@ -101,7 +101,7 @@ if (code) {
             window.history.replaceState({}, document.title, window.location.pathname);
             document.getElementById("loginBtn").innerText = "🔒 Spotify連携済み";
             document.getElementById("getWeatherBtn").disabled = false;
-            document.getElementById("result").innerHTML = "<p>連携が成功しました！「2」のボタンを押してください。</p>";
+            document.getElementById("result").innerHTML = "<p>連携が成功しました！天気を検索してみましょう。</p>";
             
             fetchUserProfile(data.access_token);
         } else {
@@ -138,13 +138,34 @@ async function fetchWeatherAndMusic(weatherUrl) {
         const temp = Math.round(weatherData.main.temp);
         const actualCityName = weatherData.name;
 
-        currentPlaylistName = `Weather Beats: ${actualCityName} (${weather})`;
+        // 🌟 新機能：HTMLで選んだジャンルを取得
+        const genreSelectEl = document.getElementById("genreSelect");
+        const selectedGenre = genreSelectEl ? genreSelectEl.value : "pop"; // HTMLが無い場合の保険
+        const genreText = genreSelectEl ? genreSelectEl.options[genreSelectEl.selectedIndex].text : "ポップ";
 
-        let searchQuery = "feel good pop"; 
-        if (weather === "Clear") searchQuery = "summer drive vibe"; 
-        else if (weather === "Rain") searchQuery = "rainy day jazz cafe"; 
-        else if (weather === "Clouds") searchQuery = "lofi ambient chill"; 
-        else if (weather === "Snow") searchQuery = "winter acoustic cozy"; 
+        currentPlaylistName = `Weather Beats: ${actualCityName} (${temp}℃ / ${weather})`;
+
+        // 🌟 新機能：天気と【気温】に応じたムード判定ロジック
+        let mood = "";
+        if (weather === "Clear") {
+            if (temp >= 26) mood = "summer upbeat energetic";    // 26度以上の暑い晴れ
+            else if (temp >= 15) mood = "happy drive breeze";    // 15〜25度の快適な晴れ
+            else mood = "acoustic chill relaxing";               // 14度以下の涼しい/寒い晴れ
+        } else if (weather === "Rain") {
+            if (temp >= 20) mood = "rain mellow humid";          // 暖かい雨
+            else mood = "dark moody rain piano";                 // 寒い雨
+        } else if (weather === "Clouds") {
+            if (temp >= 20) mood = "cloudy groove smooth";       // 暖かい曇り
+            else mood = "ambient relax calm";                    // 寒い曇り
+        } else if (weather === "Snow") {
+            mood = "winter snowy quiet cozy";                    // 雪
+        } else {
+            mood = "good vibe";                                  // その他
+        }
+
+        // Spotifyに投げる検索ワード（ジャンル名 ＋ 気温・天気のムード）
+        const searchQuery = `${selectedGenre} ${mood}`; 
+        console.log("検索クエリ:", searchQuery); // 開発確認用
 
         const spotifySearchUrl = `${BASE_API_URL}/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=5`;
         const spotifyResponse = await fetch(spotifySearchUrl, {
@@ -163,6 +184,7 @@ async function fetchWeatherAndMusic(weatherUrl) {
         let htmlContent = `
             <h3 style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">
                 ☁️ ${actualCityName}: ${weather} (${temp}℃)
+                <div style="font-size: 0.8rem; margin-top: 5px; color: #1DB954;">🎵 ジャンル: ${genreText}</div>
             </h3>
             <ul style="list-style: none; padding: 0; margin: 0;">
         `;
@@ -173,8 +195,6 @@ async function fetchWeatherAndMusic(weatherUrl) {
             spotifyData.tracks.items.forEach((track) => {
                 const albumImg = track.album.images[0] ? track.album.images[0].url : "";
                 currentTrackUris.push(track.uri);
-                
-                // 🌟 ここを変更：オーディオプレイヤーを廃止し、「Spotifyで開く」ボタンを作成
                 const trackSpotifyUrl = track.external_urls.spotify;
                 
                 htmlContent += `
@@ -200,7 +220,7 @@ async function fetchWeatherAndMusic(weatherUrl) {
                 <button id="playlistBtn" class="btn" style="margin-top: 20px;" onclick="saveToSpotifyPlaylist(this)">💾 この5曲をプレイリストに保存</button>
             `;
         } else {
-            htmlContent += "<li>曲が見つかりませんでした。</li></ul>";
+            htmlContent += "<li>条件に合う曲が見つかりませんでした。別のジャンルを試してください。</li></ul>";
         }
 
         document.getElementById("result").innerHTML = htmlContent;
