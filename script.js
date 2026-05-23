@@ -4,7 +4,7 @@ const SPOTIFY_CLIENT_ID = "25fdf849cdf44da99c0730897f152a37";
 const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
 // =========================
 
-// Spotify公式の正しい通信URLに修正済みです
+// 🌟 Spotify公式の正しいURLに修正しました！
 const BASE_AUTH_URL = "https://accounts.spotify.com/authorize?";
 const BASE_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
@@ -21,10 +21,16 @@ function generateRandomString(length) {
     return text;
 }
 
+// 🌟 Safari（iPhone/Mac）でのエラー「The string did not match the expected pattern.」を回避するための安全な処理に修正
 async function generateCodeChallenge(codeVerifier) {
     const data = new TextEncoder().encode(codeVerifier);
     const digest = await window.crypto.subtle.digest('SHA-256', data);
-    return btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(digest))))
+    const bytes = new Uint8Array(digest);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary)
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=+$/, '');
@@ -102,7 +108,6 @@ if (savedToken) {
 async function searchMusic(weatherUrl) {
     const accessToken = localStorage.getItem("spotify_access_token");
     try {
-        // 天気情報の取得
         const wRes = await fetch(weatherUrl);
         const wData = await wRes.json();
         if (wData.cod !== 200) throw new Error("都市が見つかりません");
@@ -110,32 +115,29 @@ async function searchMusic(weatherUrl) {
         const weather = wData.weather[0].main;
         const temp = Math.round(wData.main.temp);
         
-        // ジャンルの取得（lofiはSpotifyのseedジャンルに無いためchillに変換）
         let rawGenre = document.getElementById("genreSelect").value;
         let seedGenre = rawGenre === "lofi" ? "chill" : rawGenre;
         const genreLabel = document.getElementById("genreSelect").options[document.getElementById("genreSelect").selectedIndex].text;
 
-        // 🌟 気温と天気による音楽のパラメータ設定（0.0〜1.0）
-        let targetEnergy = 0.5;       // 曲の激しさ・ノリ
-        let targetValence = 0.5;      // 曲の明るさ・ハッピー感
-        let targetAcoustic = 0.5;     // アコースティック感（電子音の少なさ）
+        let targetEnergy = 0.5;       
+        let targetValence = 0.5;      
+        let targetAcoustic = 0.5;     
 
         if (weather === "Clear") {
-            if (temp >= 26) { targetEnergy = 0.8; targetValence = 0.8; targetAcoustic = 0.1; } // 猛暑: ノリノリ
-            else if (temp >= 15) { targetEnergy = 0.6; targetValence = 0.7; targetAcoustic = 0.3; } // 快適: さわやか
-            else { targetEnergy = 0.4; targetValence = 0.6; targetAcoustic = 0.7; } // 寒い晴れ: アコースティック
+            if (temp >= 26) { targetEnergy = 0.8; targetValence = 0.8; targetAcoustic = 0.1; }
+            else if (temp >= 15) { targetEnergy = 0.6; targetValence = 0.7; targetAcoustic = 0.3; }
+            else { targetEnergy = 0.4; targetValence = 0.6; targetAcoustic = 0.7; }
         } else if (weather === "Rain") {
-            if (temp >= 20) { targetEnergy = 0.4; targetValence = 0.4; targetAcoustic = 0.5; } // 暖かい雨: メロウ
-            else { targetEnergy = 0.2; targetValence = 0.3; targetAcoustic = 0.8; } // 寒い雨: しっとり暗め
+            if (temp >= 20) { targetEnergy = 0.4; targetValence = 0.4; targetAcoustic = 0.5; }
+            else { targetEnergy = 0.2; targetValence = 0.3; targetAcoustic = 0.8; }
         } else if (weather === "Clouds") {
-            targetEnergy = 0.4; targetValence = 0.5; targetAcoustic = 0.5; // 曇り: リラックス
+            targetEnergy = 0.4; targetValence = 0.5; targetAcoustic = 0.5;
         } else if (weather === "Snow") {
-            targetEnergy = 0.2; targetValence = 0.4; targetAcoustic = 0.9; // 雪: 静寂
+            targetEnergy = 0.2; targetValence = 0.4; targetAcoustic = 0.9;
         }
 
         currentPlaylistName = `Weather: ${wData.name} (${temp}℃ / ${weather})`;
         
-        // Recommendations API へリクエスト
         const recUrl = `${BASE_API_URL}/recommendations?limit=5&seed_genres=${seedGenre}&target_energy=${targetEnergy}&target_valence=${targetValence}&target_acousticness=${targetAcoustic}`;
         
         const sRes = await fetch(recUrl, {
