@@ -1,9 +1,8 @@
-// ====== CONFIG（公式Spotify API URLへ完全修正済） ======
+// ====== CONFIG ======
 const WEATHER_API_KEY = "6569f9193b1871a2521eeb1bb5ffc92a";
 const SPOTIFY_CLIENT_ID = "25fdf849cdf44da99c0730897f152a37";
 const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
 
-// 🌟 本物のSpotify公式APIエンドポイント
 const BASE_AUTH_URL = "https://accounts.spotify.com/authorize?";
 const BASE_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const BASE_API_URL = "https://api.spotify.com/v1";
@@ -11,7 +10,6 @@ const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
 
 const WORLD_CITIES = ["London", "Paris", "New York", "Reykjavik", "Honolulu", "Cairo", "Sydney", "Bangkok", "Rio de Janeiro", "Berlin", "Tokyo", "Seoul"];
 
-// インタラクティブオーディオ
 let audioCtx = null;
 function playSound(type) {
     try {
@@ -37,14 +35,12 @@ function playSound(type) {
     } catch(e) {}
 }
 
-// 都市チップクリック関数
 window.selectCity = function(cityName) {
     try { playSound('click'); } catch(e) {}
     document.getElementById("cityInput").value = cityName;
     searchMusic(`${BASE_WEATHER_URL}q=${cityName}&appid=${WEATHER_API_KEY}&units=metric`);
 };
 
-// --- AUTH HELPERS ---
 function generateRandomString(length) {
     let text = ''; const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     for (let i = 0; i < length; i++) text += possible.charAt(Math.floor(Math.random() * possible.length));
@@ -66,7 +62,6 @@ async function generateCodeChallenge(codeVerifier) {
     return result;
 }
 
-// --- CORE LOGIC ---
 async function searchMusic(weatherUrl) {
     const resultDiv = document.getElementById("result");
     const loaderContainer = document.getElementById("loaderContainer");
@@ -92,7 +87,6 @@ async function searchMusic(weatherUrl) {
         const temp = Math.round(wData.main.temp);
         const cityName = wData.name;
 
-        // 天候グラデーション背景制御
         if (weather === "Clear") {
             document.body.style.background = "linear-gradient(135deg, #2b1d0a 0%, #120b02 40%, #050506 100%)";
         } else if (weather === "Rain" || weather === "Drizzle" || weather === "Thunderstorm") {
@@ -133,16 +127,10 @@ async function searchMusic(weatherUrl) {
             headers: { 'Authorization': 'Bearer ' + token }
         });
         
-        if (!sRes.ok) {
-            throw new Error("Spotifyとの通信に失敗しました。トークンが失効している可能性があります。一度最下部のボタンでリセットし、再ログインしてください。");
-        }
+        if (!sRes.ok) throw new Error("Spotifyとの通信に失敗しました。最下部のボタンでリセットして再ログインしてください。");
 
         const sData = await sRes.json();
-
-        // 🌟 クラッシュ防止用の安全ガード
-        if (!sData || !sData.tracks || !sData.tracks.items) {
-            throw new Error("有効な曲データを受信できませんでした。再度ログインを試してください。");
-        }
+        if (!sData || !sData.tracks || !sData.tracks.items) throw new Error("有効な曲データを受信できませんでした。");
 
         if (sData.tracks.items.length === 0) {
             resultDiv.innerHTML = `<p style="color:rgba(255,255,255,0.5); text-align:center;">該当する楽曲が見つかりませんでした。</p>`;
@@ -196,7 +184,6 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     localStorage.setItem("spotify_verifier", verifier);
     const challenge = await generateCodeChallenge(verifier);
     
-    // 🌟 プレイリスト作成に必要な変更権限（スコープ）を厳密に要求
     const params = new URLSearchParams({
         client_id: SPOTIFY_CLIENT_ID,
         response_type: 'code',
@@ -208,7 +195,6 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     window.location.href = BASE_AUTH_URL + params.toString();
 });
 
-// TOKEN EXCHANGE
 const code = new URLSearchParams(window.location.search).get('code');
 if (code) {
     const verifier = localStorage.getItem("spotify_verifier");
@@ -245,9 +231,7 @@ document.getElementById("gpsBtn").addEventListener("click", () => {
     try { playSound('click'); } catch(e) {}
     const loaderContainer = document.getElementById("loaderContainer");
     const loadingText = document.getElementById("loadingText");
-    const guidance = document.getElementById("initialGuidance");
-    
-    if(guidance) guidance.style.display = "none";
+    if(document.getElementById("initialGuidance")) document.getElementById("initialGuidance").style.display = "none";
     document.getElementById("result").innerHTML = "";
     
     loadingText.innerHTML = `<span style="font-size:0.8rem; letter-spacing:2px; color:var(--trip-purple); font-weight:700;">ORBITAL SATELLITE SCANNING</span><br><span style="font-size:1.1rem; font-weight:700;">GPS位置情報から気象レーダーを追跡中...</span>`;
@@ -274,7 +258,7 @@ document.getElementById("tripBtn").addEventListener("click", () => {
     searchMusic(`${BASE_WEATHER_URL}q=${city}&appid=${WEATHER_API_KEY}&units=metric`);
 });
 
-// 🌟 プレイリスト作成および楽曲追加処理（公式仕様に完全追従）
+// 🌟【403エラー完全対応】最も安全な個人エンドポイント（/me/playlists）へ修正
 window.savePlaylist = async function(btn, name, uris) {
     try { playSound('click'); } catch(e) {}
     const token = localStorage.getItem("spotify_access_token");
@@ -282,16 +266,8 @@ window.savePlaylist = async function(btn, name, uris) {
     btn.innerText = "⏳ プレイリスト作成中...";
     
     try {
-        // 1. 現在認証している自分のユーザーIDを取得
-        const meRes = await fetch(`${BASE_API_URL}/me`, {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!meRes.ok) throw new Error("ユーザー情報の取得に失敗しました。");
-        const meData = await meRes.json();
-        const userId = meData.id;
-
-        // 2. ユーザーIDに紐づけて新しいプレイリストを作成
-        const r1 = await fetch(`${BASE_API_URL}/users/${userId}/playlists`, {
+        // 🌟 /users/{id}/playlists ではなく、認証された本人に直接作成する /me/playlists に変更
+        const r1 = await fetch(`${BASE_API_URL}/me/playlists`, {
             method: 'POST', 
             headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: name, public: false, description: "Synced by Weather Resonance App" })
@@ -304,7 +280,7 @@ window.savePlaylist = async function(btn, name, uris) {
         const d1 = await r1.json();
         const playlistId = d1.id;
 
-        // 3. 生成されたプレイリストに曲を追加
+        // 2. 生成されたプレイリストに曲を追加
         const r2 = await fetch(`${BASE_API_URL}/playlists/${playlistId}/tracks`, {
             method: 'POST', 
             headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
