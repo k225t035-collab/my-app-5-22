@@ -3,203 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WEATHER RESONANCE // 空間同期オーディオ</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>Weather Beats Player</title>
     <style>
+        /* ====== 高級オーディオ・サイバーダークテーマ ====== */
         :root {
-            --spotify-green: #1ed760;
-            --trip-purple: #9d4edd;
-            --bg-dark: #0a0a0c;
-            --card-bg: rgba(20, 20, 28, 0.6);
-            --text-main: #f8f9fa;
+            --bg-gradient: linear-gradient(135deg, #0f111a 0%, #07080d 100%);
+            --spotify-green: #1DB954;
+            --spotify-hover: #1ed760;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-sub: rgba(255, 255, 255, 0.6);
+            --neon-glow: 0 0 20px rgba(29, 185, 84, 0.2);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
 
         body {
-            font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
-            background: var(--bg-dark);
+            background: var(--bg-gradient);
+            background-size: 400% 400%;
+            transition: background 2s ease; /* 天気変更時にフワッと背景を変える */
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            padding: 40px 20px;
+            justify-content: center;
+            padding: 20px;
             overflow-x: hidden;
-            transition: background 1.5s ease;
         }
 
-        .container {
+        /* 宇宙的な背景のゆらぎアニメーション */
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* ====== メインプレイヤーコンテナ ====== */
+        .player-container {
             width: 100%;
-            max-width: 680px;
-            background: rgba(10, 10, 12, 0.4);
-            border-radius: 24px;
+            max-width: 480px;
+            background: rgba(10, 12, 22, 0.75);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 32px;
             padding: 30px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+            position: relative;
         }
 
-        header {
-            text-align: center;
-            margin-bottom: 35px;
-        }
-
-        h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 900;
-            font-size: 1.8rem;
-            letter-spacing: 4px;
-            background: linear-gradient(90deg, #fff, rgba(255,255,255,0.4));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
-        }
-
-        .subtitle {
-            font-size: 0.8rem;
-            color: rgba(255,255,255,0.4);
-            letter-spacing: 2px;
-            font-weight: 500;
-        }
-
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 16px;
-            border-radius: 12px;
-            border: none;
-            font-weight: 700;
-            letter-spacing: 1px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            font-size: 0.95rem;
-            text-align: center;
-        }
-
-        .btn-spotify {
-            background: var(--spotify-green);
-            color: #000;
-            box-shadow: 0 4px 20px rgba(30, 215, 96, 0.3);
-        }
-        .btn-spotify:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(30, 215, 96, 0.5);
-        }
-
-        .btn-purple {
-            background: linear-gradient(135deg, #7b2cbf, #5a189a);
-            color: #fff;
-            box-shadow: 0 4px 20px rgba(123, 44, 191, 0.3);
-        }
-        .btn-purple:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(123, 44, 191, 0.5);
-        }
-
-        .btn-outline {
-            background: transparent;
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.15);
-        }
-        .btn-outline:hover {
-            background: rgba(255,255,255,0.05);
-            border-color: rgba(255,255,255,0.3);
-        }
-
-        #weatherAppSection, #actionSection { display: none; }
-
-        .search-box {
+        /* プレイヤー上部のインジケーター */
+        .player-header {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        input {
-            flex: 1;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            padding: 16px;
-            border-radius: 12px;
-            color: #fff;
-            font-size: 1rem;
-            outline: none;
-            font-family: inherit;
-            transition: all 0.3s;
-        }
-        input:focus {
-            border-color: rgba(255,255,255,0.2);
-            background: rgba(255,255,255,0.08);
-        }
-
-        .city-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 25px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 15px;
         }
 
-        .chip {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.06);
-            padding: 8px 14px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: rgba(255,255,255,0.7);
+        .player-title {
+            font-size: 0.85rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--text-sub);
+            text-transform: uppercase;
         }
-        .chip:hover {
+
+        #userProfile {
+            font-size: 0.75rem;
             background: rgba(255,255,255,0.1);
-            color: #fff;
-            border-color: rgba(255,255,255,0.2);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: none;
         }
 
-        .loader-container {
-            display: none;
+        /* ====== ログインセクション ====== */
+        .login-section {
             text-align: center;
             padding: 40px 0;
         }
 
-        .spinner {
-            width: 30px;
-            height: 30px;
-            border: 2px solid rgba(255,255,255,0.1);
-            border-top-color: var(--spotify-green);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 20px;
+        .welcome-logo {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: pulse 3s infinite ease-in-out;
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
 
-        .results-grid {
+        /* ====== コンポーネント: ボタン ====== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 16px;
+            border: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            text-decoration: none;
+            gap: 8px;
+        }
+
+        .btn-spotify {
+            background: var(--spotify-green);
+            color: #000000;
+            box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);
+        }
+
+        .btn-spotify:hover {
+            background: var(--spotify-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(29, 185, 84, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        /* ====== 検索・コントロールパネル ====== */
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .search-input {
+            flex-grow: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: var(--spotify-green);
+        }
+
+        .search-box .btn {
+            width: auto;
+            padding: 0 20px;
+        }
+
+        .action-grid {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            margin-top: 15px;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
         }
-        @media(min-width: 480px) {
-            .results-grid { grid-template-columns: 1fr 1fr; }
+
+        /* 都市チップの横スクロールコンテナ */
+        .chip-container {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            scrollbar-width: none; /* Firefox用 */
+        }
+        .chip-container::-webkit-scrollbar { display: none; } /* Chrome用 */
+
+        .city-chip {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-sub);
+        }
+
+        .city-chip:hover {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        /* ====== ローディング（プレイヤーイコライザー風） ====== */
+        #loading {
+            text-align: center;
+            padding: 30px 10px;
+            font-size: 0.9rem;
+            color: var(--spotify-green);
+            font-weight: 600;
+            display: none;
+            animation: pulseText 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulseText {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* ====== 楽曲トラックリスト表示 ====== */
+        .weather-status-badge {
+            text-align: center;
+            background: rgba(0,0,0,0.4);
+            padding: 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.03);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .track-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 25px;
         }
 
         .track-card {
             display: flex;
             align-items: center;
-            background: var(--card-bg);
-            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255,255,255,0.04);
             border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.03);
-            transition: all 0.3s;
+            padding: 10px;
+            transition: all 0.2s ease;
         }
+
         .track-card:hover {
-            transform: translateY(-2px);
-            background: rgba(30,30,40,0.8);
+            background: rgba(255, 255, 255, 0.07);
+            transform: scale(1.01);
             border-color: rgba(255,255,255,0.1);
         }
 
@@ -208,108 +265,390 @@
             height: 54px;
             border-radius: 8px;
             margin-right: 14px;
-            object-fit: cover;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
-        .track-info {
-            flex: 1;
-            min-width: 0;
+        .track-meta {
+            flex-grow: 1;
+            overflow: hidden;
+            padding-right: 10px;
         }
 
         .track-title {
-            font-size: 0.9rem;
             font-weight: 700;
+            font-size: 0.95rem;
             white-space: nowrap;
-            overflow: hidden;
             text-overflow: ellipsis;
+            overflow: hidden;
             margin-bottom: 2px;
         }
 
         .track-artist {
-            font-size: 0.75rem;
-            color: rgba(255,255,255,0.5);
+            font-size: 0.8rem;
+            color: var(--text-sub);
             white-space: nowrap;
-            overflow: hidden;
             text-overflow: ellipsis;
-            margin-bottom: 4px;
+            overflow: hidden;
         }
 
-        .track-link {
-            font-size: 0.65rem;
+        .track-play-btn {
             color: var(--spotify-green);
-            text-decoration: none;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        #userProfile {
-            text-align: center;
             font-size: 0.75rem;
-            letter-spacing: 2px;
-            color: rgba(255,255,255,0.3);
-            margin-top: 25px;
             font-weight: 700;
+            text-decoration: none;
+            border: 1px solid rgba(29, 185, 84, 0.3);
+            padding: 6px 12px;
+            border-radius: 20px;
+            transition: all 0.2s;
+            background: rgba(29, 185, 84, 0.05);
+            white-space: nowrap;
         }
 
-        .footer-actions {
-            margin-top: 40px;
-            border-top: 1px solid rgba(255,255,255,0.05);
-            padding-top: 20px;
+        .track-play-btn:hover {
+            background: var(--spotify-green);
+            color: #000;
+        }
+
+        /* ====== システムフッター（キャッシュクリア） ====== */
+        .system-footer {
+            margin-top: 30px;
             text-align: center;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        #clearBtn {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.2);
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-decoration: underline;
+            transition: color 0.2s;
+        }
+
+        #clearBtn:hover {
+            color: #ff5555;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>WEATHER RESONANCE</h1>
-        <div class="subtitle">ENVIRONMENTAL AUDIO SYNCHRONIZER</div>
-    </header>
-
-    <button id="loginBtn" class="btn btn-spotify">SPOTIFY アカウントを同期</button>
-
-    <div id="weatherAppSection">
-        <div class="search-box">
-            <input type="text" id="cityInput" placeholder="都市名を英語で入力 (例: Tokyo, London)">
-            <button id="getWeatherBtn" class="btn btn-outline" style="width: auto; padding: 0 25px;">SCAN</button>
+    <div class="player-container">
+        <div class="player-header">
+            <div class="player-title">🎵 Weather Beats</div>
+            <div id="userProfile">👤 Guest</div>
         </div>
 
-        <div class="city-chips">
-            <div class="chip" onclick="selectCity('Reykjavik')">レイキャビク 🇮🇸</div>
-            <div class="chip" onclick="selectCity('Honolulu')">ホノルル 🇺🇸</div>
-            <div class="chip" onclick="selectCity('Tokyo')">東京 🇯🇵</div>
-            <div class="chip" onclick="selectCity('London')">ロンドン 🇬🇧</div>
-            <div class="chip" onclick="selectCity('Rio de Janeiro')">リオ 🇧🇷</div>
+        <div id="loginSection" class="login-section">
+            <div class="welcome-logo">🎧</div>
+            <p style="font-size: 0.9rem; color: var(--text-sub); margin-bottom: 25px; line-height: 1.5;">
+                現在の空模様と時間帯を解析し、<br>あなたの街に同期したプレイリストを自動生成します。
+            </p>
+            <button id="loginBtn" class="btn btn-spotify">SPOTIFY アカウントを同期</button>
+        </div>
+
+        <div id="weatherAppSection" style="display: none;">
+            <div class="search-box">
+                <input type="text" id="cityInput" class="search-input" placeholder="都市名をローマ字で入力（例: Tokyo）">
+                <button id="getWeatherBtn" class="btn btn-spotify">🔍</button>
+            </div>
+
+            <div class="action-grid">
+                <button id="gpsBtn" class="btn btn-secondary">📍 現在地 GPS</button>
+                <button id="tripBtn" class="btn btn-secondary">🎲 旅に出る</button>
+            </div>
+
+            <div class="chip-container">
+                <div class="city-chip" onclick="selectCity('London')">🇬🇧 London</div>
+                <div class="city-chip" onclick="selectCity('Paris')">🇫🇷 Paris</div>
+                <div class="city-chip" onclick="selectCity('New York')">🇺🇸 New York</div>
+                <div class="city-chip" onclick="selectCity('Reykjavik')">🇮🇸 Reykjavik</div>
+                <div class="city-chip" onclick="selectCity('Honolulu')">🇺🇸 Honolulu</div>
+                <div class="city-chip" onclick="selectCity('Cairo')">🇪🇬 Cairo</div>
+                <div class="city-chip" onclick="selectCity('Sydney')">🇦🇺 Sydney</div>
+                <div class="city-chip" onclick="selectCity('Bangkok')">🇹🇭 Bangkok</div>
+                <div class="city-chip" onclick="selectCity('Rio de Janeiro')">🇧🇷 Rio</div>
+                <div class="city-chip" onclick="selectCity('Berlin')">🇩🇪 Berlin</div>
+            </div>
+
+            <div id="loading">🎵 選曲中...</div>
+
+            <div id="result"></div>
         </div>
     </div>
 
-    <div id="actionSection" style="margin-bottom: 20px;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <button id="gpsBtn" class="btn btn-outline" style="font-size: 0.85rem; padding: 14px;">📡 現在地をトラッキング</button>
-            <button id="tripBtn" class="btn btn-purple" style="font-size: 0.85rem; padding: 14px;">🎲 次元転移（ランダム）</button>
-        </div>
+    <div class="system-footer">
+        <button id="clearBtn">セッションを強制終了（キャッシュクリア）</button>
     </div>
 
-    <div class="loader-container" id="loaderContainer">
-        <div class="spinner"></div>
-        <div id="loadingText" style="font-size: 0.9rem; rgba(255,255,255,0.7); line-height: 1.6;"></div>
-    </div>
+    <script>
+        // CONFIG
+        const WEATHER_API_KEY = "6569f9193b1871a2521eeb1bb5ffc92a";
+        const SPOTIFY_CLIENT_ID = "25fdf849cdf44da99c0730897f152a37";
+        const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
 
-    <div id="initialGuidance" style="text-align: center; padding: 40px 0; color: rgba(255,255,255,0.25); font-size: 0.85rem; letter-spacing: 1px; line-height: 1.6; border: 1px dashed rgba(255,255,255,0.05); border-radius: 14px;">
-        システム待機中...<br>都市を選択するかスキャンを開始してください。
-    </div>
+        // あなたの環境専用の結合回避URL
+        const BASE_AUTH_URL = "https://" + "accounts." + "spotify.com/authorize?";
+        const BASE_TOKEN_URL = "https://" + "accounts." + "spotify.com/api/token";
+        const BASE_API_URL = "https://" + "api." + "spotify.com/v1";
+        const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
 
-    <div id="result"></div>
+        const WORLD_CITIES = ["London", "Paris", "New York", "Reykjavik", "Honolulu", "Cairo", "Sydney", "Bangkok", "Rio de Janeiro", "Berlin"];
 
-    <div id="userProfile"></div>
+        // AUTH HELPERS
+        function generateRandomString(length) {
+            let text = '';
+            const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            for (let i = 0; i < length; i++) text += possible.charAt(Math.floor(Math.random() * possible.length));
+            return text;
+        }
 
-    <div class="footer-actions">
-        <button id="clearBtn" class="btn btn-outline" style="font-size: 0.75rem; padding: 8px 16px; width: auto; margin: 0 auto; color: rgba(255,0,0,0.5); border-color: rgba(255,0,0,0.15);">⚠️ セッションを強制終了（キャッシュクリア）</button>
-    </div>
-</div>
+        async function generateCodeChallenge(codeVerifier) {
+            const data = new TextEncoder().encode(codeVerifier);
+            const digest = await window.crypto.subtle.digest('SHA-256', data);
+            const base64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+            let result = "";
+            const bytes = new Uint8Array(digest);
+            for (let i = 0; i < bytes.length; i += 3) {
+                const b1 = bytes[i], b2 = i + 1 < bytes.length ? bytes[i + 1] : 0, b3 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+                const group = (b1 << 16) | (b2 << 8) | b3;
+                result += base64chars[(group >> 18) & 63] + base64chars[(group >> 12) & 63];
+                result += i + 1 < bytes.length ? base64chars[(group >> 6) & 63] : "";
+                result += i + 2 < bytes.length ? base64chars[group & 63] : "";
+            }
+            return result;
+        }
 
-<script src="script.js"></script>
+        // CORE LOGIC (楽曲検索 ＆ ダイナミック背景変更)
+        async function searchMusic(weatherUrl) {
+            const token = localStorage.getItem("spotify_access_token");
+            const resultDiv = document.getElementById("result");
+            const loader = document.getElementById("loading");
+
+            if (resultDiv) resultDiv.innerHTML = "";
+            if (loader) {
+                loader.style.display = "block";
+                loader.innerText = "⚡ 天気ステーションと同期中...";
+            }
+
+            try {
+                const wRes = await fetch(weatherUrl);
+                const wData = await wRes.json();
+                if (wData.cod !== 200) throw new Error("都市が見つかりません。ローマ字で入力してください");
+
+                const weather = wData.weather[0].main;
+                const temp = Math.round(wData.main.temp);
+                const cityName = wData.name;
+
+                // 🌟 【没入演出】天気に連動して背景オーロラの色をダイナミックに変える
+                if (weather === "Clear") {
+                    document.body.style.background = "linear-gradient(135deg, #2c1a04 0%, #0c1b33 50%, #05070a 100%)";
+                } else if (weather === "Rain" || weather === "Drizzle" || weather === "Thunderstorm") {
+                    document.body.style.background = "linear-gradient(135deg, #07131f 0%, #0a0f1d 50%, #030406 100%)";
+                } else if (weather === "Clouds") {
+                    document.body.style.background = "linear-gradient(135deg, #181326 0%, #0e0d12 50%, #050508 100%)";
+                } else {
+                    document.body.style.background = "linear-gradient(135deg, #1c1124 0%, #0f0a1c 50%, #05030a 100%)";
+                }
+
+                // 時間帯判定
+                const hour = new Date().getHours();
+                let timeTag = "night mellow";
+                let timeLabel = "🌌 深夜の静寂";
+                if (hour >= 5 && hour < 11) { timeTag = "morning fresh energetic"; timeLabel = "🌅 朝の爽やか"; }
+                else if (hour >= 11 && hour < 16) { timeTag = "afternoon sunny happy"; timeLabel = "☀️ 昼の快適"; }
+                else if (hour >= 16 && hour < 19) { timeTag = "sunset twilight chill"; timeLabel = "🌆 夕方の哀愁"; }
+
+                if (loader) loader.innerText = `🎵 ${cityName}: ${weather} / ${timeLabel}を選曲中...`;
+
+                let weatherTag = "chill";
+                if (weather === "Clear") weatherTag = temp >= 25 ? "summer energetic" : "happy breezy";
+                else if (weather === "Rain") weatherTag = "rainy jazz piano mellow";
+                else if (weather === "Clouds") weatherTag = "lofi chill ambient";
+
+                const q = `${weatherTag} ${timeTag}`;
+                const sRes = await fetch(`${BASE_API_URL}/search?q=${encodeURIComponent(q)}&type=track&limit=6`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const sData = await sRes.json();
+
+                if (loader) loader.style.display = "none";
+                
+                // プレイヤーのトラックリスト風レイアウト生成
+                let html = `<div class="weather-status-badge">📡 NOW PLAYING: ${cityName} / ${temp}℃ / ${weather}</div>`;
+                html += `<div class="track-list">`;
+                
+                const trackUris = [];
+                if (sData && sData.tracks && sData.tracks.items) {
+                    sData.tracks.items.forEach(track => {
+                        trackUris.push(track.uri);
+                        html += `
+                            <div class="track-card">
+                                <img src="${track.album.images[0].url}" class="track-img">
+                                <div class="track-meta">
+                                    <div class="track-title">${track.name}</div>
+                                    <div class="track-artist">${track.artists[0].name}</div>
+                                </div>
+                                <a href="${track.external_urls.spotify}" target="_blank" class="track-play-btn">試聴 ↗</a>
+                            </div>`;
+                    });
+                }
+                html += `</div>`;
+
+                // プレイリスト保存ボタン
+                html += `<button class="btn btn-spotify" onclick='savePlaylist(this, "${cityName} Weather", ${JSON.stringify(trackUris)})'>💾 このプレイリストを保存</button>`;
+                if (resultDiv) resultDiv.innerHTML = html;
+
+            } catch (e) { 
+                if (loader) loader.style.display = "none";
+                alert(e.message); 
+            }
+        }
+
+        // 都市チップ用関数
+        window.selectCity = function(cityName) {
+            const cityInput = document.getElementById("cityInput");
+            if (cityInput) cityInput.value = cityName;
+            searchMusic(`${BASE_WEATHER_URL}q=${cityName}&appid=${WEATHER_API_KEY}&units=metric`);
+        };
+
+        // EVENTS
+        const loginBtn = document.getElementById("loginBtn");
+        if (loginBtn) {
+            loginBtn.addEventListener("click", async () => {
+                const verifier = generateRandomString(128);
+                localStorage.setItem("spotify_verifier", verifier);
+                const challenge = await generateCodeChallenge(verifier);
+                const params = new URLSearchParams({
+                    client_id: SPOTIFY_CLIENT_ID, response_type: 'code', redirect_uri: REDIRECT_URI,
+                    scope: 'playlist-modify-public playlist-modify-private', code_challenge_method: 'S256', code_challenge: challenge
+                });
+                window.location.href = BASE_AUTH_URL + params.toString();
+            });
+        }
+
+        // TOKEN EXCHANGE
+        const code = new URLSearchParams(window.location.search).get('code');
+        if (code) {
+            const verifier = localStorage.getItem("spotify_verifier");
+            fetch(BASE_TOKEN_URL, {
+                method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ client_id: SPOTIFY_CLIENT_ID, grant_type: 'authorization_code', code, redirect_uri: REDIRECT_URI, code_verifier: verifier })
+            }).then(r => r.json()).then(data => {
+                if (data.access_token) {
+                    localStorage.setItem("spotify_access_token", data.access_token);
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    location.reload();
+                }
+            }).catch(err => console.log("Token exchange error:", err));
+        }
+
+        // LOGIN STATE CHECK
+        const savedToken = localStorage.getItem("spotify_access_token");
+        if (savedToken) {
+            const loginSection = document.getElementById("loginSection");
+            const weatherAppSection = document.getElementById("weatherAppSection");
+            if (loginSection) loginSection.style.display = "none";
+            if (weatherAppSection) weatherAppSection.style.display = "block";
+            
+            fetch(`${BASE_API_URL}/me`, { headers: { 'Authorization': 'Bearer ' + savedToken } })
+                .then(r => r.json()).then(data => {
+                    const profile = document.getElementById("userProfile");
+                    if (profile && data && data.display_name) {
+                        profile.innerText = `👤 ${data.display_name}`;
+                        profile.style.display = "block";
+                    }
+                }).catch(err => console.log("Profile fetch error:", err));
+        }
+
+        // GPS BUTTON
+        const gpsBtn = document.getElementById("gpsBtn");
+        if (gpsBtn) {
+            gpsBtn.addEventListener("click", () => {
+                const loader = document.getElementById("loading");
+                const resultDiv = document.getElementById("result");
+                if (resultDiv) resultDiv.innerHTML = ""; 
+                if (loader) {
+                    loader.innerText = "📍 衛星シグナル受信中（現在地取得）..."; 
+                    loader.style.display = "block";
+                }
+
+                navigator.geolocation.getCurrentPosition(p => {
+                    searchMusic(`${BASE_WEATHER_URL}lat=${p.coords.latitude}&lon=${p.coords.longitude}&appid=${WEATHER_API_KEY}&units=metric`);
+                }, (error) => {
+                    if (loader) loader.style.display = "none";
+                    alert("位置情報の取得に失敗しました。GPS許可を確認してください。");
+                });
+            });
+        }
+
+        // SEARCH BUTTON
+        const getWeatherBtn = document.getElementById("getWeatherBtn");
+        if (getWeatherBtn) {
+            getWeatherBtn.addEventListener("click", () => {
+                const cityInput = document.getElementById("cityInput");
+                const city = cityInput ? (cityInput.value || "Kyoto") : "Kyoto";
+                searchMusic(`${BASE_WEATHER_URL}q=${city}&appid=${WEATHER_API_KEY}&units=metric`);
+            });
+        }
+
+        // RANDOM TRIP BUTTON
+        const tripBtn = document.getElementById("tripBtn");
+        if (tripBtn) {
+            tripBtn.addEventListener("click", () => {
+                const city = WORLD_CITIES[Math.floor(Math.random() * WORLD_CITIES.length)];
+                const cityInput = document.getElementById("cityInput");
+                if (cityInput) cityInput.value = city;
+                searchMusic(`${BASE_WEATHER_URL}q=${city}&appid=${WEATHER_API_KEY}&units=metric`);
+            });
+        }
+
+        // SAVE PLAYLIST (あなたの環境で成功した100%安全ルート)
+        window.savePlaylist = async function(btn, name, uris) {
+            const token = localStorage.getItem("spotify_access_token");
+            const originalText = btn.innerText;
+            btn.innerText = "⏳ プレイヤーに同期保存中...";
+            
+            try {
+                const r1 = await fetch(`${BASE_API_URL}/me/playlists`, {
+                    method: 'POST', 
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, public: false })
+                });
+                const d1 = await r1.json();
+                
+                if (!r1.ok) throw new Error(d1.error ? d1.error.message : "枠の作成に失敗しました");
+                
+                const r2 = await fetch(`${BASE_API_URL}/playlists/${d1.id}/items`, {
+                    method: 'POST', 
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uris: uris })
+                });
+                
+                if (!r2.ok) {
+                    const d2 = await r2.json();
+                    throw new Error(d2.error ? d2.error.message : "楽曲の追加に失敗しました");
+                }
+                
+                const spotifyUrl = d1.external_urls.spotify;
+                btn.outerHTML = `<a href="${spotifyUrl}" target="_blank" class="btn" style="text-decoration:none; display:flex; justify-content:center; background:#1ed760; color:black; font-weight:bold; box-shadow: 0 0 20px #1ed760;">✨ SUCCESS / SPOTIFYで開く</a>`;
+                window.open(spotifyUrl, '_blank');
+                
+            } catch (e) { 
+                alert("保存失敗: " + e.message); 
+                btn.innerText = originalText;
+            }
+        };
+
+        // CACHE CLEAR
+        const clearBtn = document.getElementById("clearBtn");
+        if (clearBtn) {
+            clearBtn.addEventListener("click", () => { 
+                localStorage.clear(); 
+                location.reload(); 
+            });
+        }
+    </script>
 </body>
 </html>
