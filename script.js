@@ -65,10 +65,10 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
         client_id: SPOTIFY_CLIENT_ID.trim(),
         response_type: 'code',
         redirect_uri: REDIRECT_URI.trim(),
-        // 🌟 ここを変更: 非公開プレイリストの権限も要求するようにしました
         scope: 'playlist-modify-public playlist-modify-private', 
         code_challenge_method: 'S256',
-        code_challenge: challenge
+        code_challenge: challenge,
+        show_dialog: 'true' // 🌟 強制的に同意画面を出す命令を追加！
     });
     window.location.href = BASE_AUTH_URL + params.toString(); 
 });
@@ -207,25 +207,6 @@ document.getElementById("getWeatherBtn").addEventListener("click", () => {
     fetchWeatherAndMusic(weatherUrl);
 });
 
-document.getElementById("gpsBtn").addEventListener("click", () => {
-    if (!navigator.geolocation) return alert("お使いのブラウザはGPSに対応していません");
-    
-    document.getElementById("result").innerHTML = "<p style='text-align:center;'>📍 現在地を特定中...</p>";
-    
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            const safeApiKey = encodeURIComponent(WEATHER_API_KEY.trim());
-            const weatherUrl = BASE_WEATHER_URL + `lat=${lat}&lon=${lon}&appid=${safeApiKey}&units=metric`;
-            fetchWeatherAndMusic(weatherUrl);
-        },
-        (error) => {
-            document.getElementById("result").innerHTML = `<p style="color: #ff6b6b;">GPS取得失敗: ${error.message}</p>`;
-        }
-    );
-});
-
 window.saveToSpotifyPlaylist = async function(btn) {
     const accessToken = localStorage.getItem("spotify_access_token");
     if (currentTrackUris.length === 0) return;
@@ -237,14 +218,10 @@ window.saveToSpotifyPlaylist = async function(btn) {
         const meResponse = await fetch(`${BASE_API_URL}/me`, {
             headers: { 'Authorization': 'Bearer ' + accessToken }
         });
-        if (!meResponse.ok) {
-            throw new Error(`【ユーザー情報取得失敗】エラーコード: ${meResponse.status}`);
-        }
+        if (!meResponse.ok) throw new Error(`【ユーザー情報取得失敗】エラーコード: ${meResponse.status}`);
+        
         const meData = await meResponse.json();
-        const userId = meData.id;
-
-        // 🌟 念のためユーザーIDをエンコード処理
-        const safeUserId = encodeURIComponent(userId);
+        const safeUserId = encodeURIComponent(meData.id);
 
         const createPlaylistResponse = await fetch(`${BASE_API_URL}/users/${safeUserId}/playlists`, {
             method: 'POST',
@@ -254,17 +231,15 @@ window.saveToSpotifyPlaylist = async function(btn) {
             },
             body: JSON.stringify({
                 name: currentPlaylistName,
-                public: false, // 🌟 ここを変更: 「非公開」で作成するようにしました
+                public: false,
                 description: "Weather Beats アプリから自動生成されたプレイリスト"
             })
         });
 
+        // 🌟 ここを修正：Spotifyの「生のエラーメッセージ」を抽出するようにしました！
         if (!createPlaylistResponse.ok) {
-            if (createPlaylistResponse.status === 403) {
-                throw new Error("【エラー 403 Forbidden】\nSpotify側のアクセス権限エラーです。");
-            } else {
-                throw new Error(`【プレイリスト作成失敗】エラーコード: ${createPlaylistResponse.status}`);
-            }
+            const errorData = await createPlaylistResponse.json();
+            throw new Error(`【Spotify生エラー】\nStatus: ${errorData.error.status}\nMessage: ${errorData.error.message}`);
         }
 
         const playlistData = await createPlaylistResponse.json();
@@ -281,7 +256,8 @@ window.saveToSpotifyPlaylist = async function(btn) {
         });
 
         if (!addTracksResponse.ok) {
-            throw new Error(`【曲の追加に失敗】エラーコード: ${addTracksResponse.status}`);
+            const trackErrorData = await addTracksResponse.json();
+            throw new Error(`【曲の追加エラー】\nMessage: ${trackErrorData.error.message}`);
         }
 
         btn.outerHTML = `
