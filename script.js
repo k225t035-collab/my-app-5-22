@@ -123,7 +123,7 @@ async function searchMusic(weatherUrl) {
         }
 
         currentPlaylistName = `Weather: ${wData.name} (${temp}℃ / ${weather})`;
-        const q = `${genre} ${mood}`;
+        const q = `genre:${genre} ${mood}`;
 
         const sRes = await fetch(`${BASE_API_URL}/search?q=${encodeURIComponent(q)}&type=track&limit=5`, {
             headers: { 'Authorization': 'Bearer ' + accessToken }
