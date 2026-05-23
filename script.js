@@ -11,7 +11,6 @@ const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
 
 const WORLD_CITIES = ["London", "Paris", "New York", "Reykjavik", "Honolulu", "Cairo", "Sydney", "Bangkok", "Rio de Janeiro", "Berlin"];
 
-// --- AUTH HELPERS ---
 function generateRandomString(length) {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
