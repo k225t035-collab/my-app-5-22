@@ -1,6 +1,6 @@
 // ====== あなたの設定項目 ======
 const WEATHER_API_KEY = "6569f9193b1871a2521eeb1bb5ffc92a";
-const SPOTIFY_CLIENT_ID = "e7abf7e217d7455b94b584b7ffbb58e8";
+const SPOTIFY_CLIENT_ID = "25fdf849cdf44da99c0730897f152a37";
 const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
 // =============================
 
