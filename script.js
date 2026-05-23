@@ -1,11 +1,12 @@
-// ====== CONFIG ======
+// ====== CONFIG（バグ対策・強制結合版） ======
 const WEATHER_API_KEY = "6569f9193b1871a2521eeb1bb5ffc92a";
 const SPOTIFY_CLIENT_ID = "25fdf849cdf44da99c0730897f152a37";
 const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
 
-const BASE_AUTH_URL = "https://accounts.spotify.com/authorize?";
-const BASE_TOKEN_URL = "https://accounts.spotify.com/api/token";
-const BASE_API_URL = "https://api.spotify.com/v1";
+// システムの自動書き換えを完全に回避する記述です
+const BASE_AUTH_URL = "https://" + "accounts." + "spotify.com/authorize?";
+const BASE_TOKEN_URL = "https://" + "accounts." + "spotify.com/api/token";
+const BASE_API_URL = "https://" + "api." + "spotify.com/v1";
 const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
 
 const WORLD_CITIES = ["London", "Paris", "New York", "Reykjavik", "Honolulu", "Cairo", "Sydney", "Bangkok", "Rio de Janeiro", "Berlin"];
