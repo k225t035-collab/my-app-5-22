@@ -4,41 +4,145 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather Beats | 景色と音楽をリンクする</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+
     <style>
-        :root { --spotify-green: #1db954; --spotify-green-hover: #1ed760; --bg-dark: #121212; --text-main: #ffffff; --text-sub: #b3b3b3; --glass-bg: rgba(255, 255, 255, 0.05); --glass-border: rgba(255, 255, 255, 0.1); }
-        body { margin: 0; padding: 0; font-family: 'Inter', 'Noto Sans JP', sans-serif; background-color: var(--bg-dark); background: linear-gradient(135deg, #121212 0%, #1e1e1e 100%); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-        .app-container { width: 100%; max-width: 600px; padding: 20px; box-sizing: border-box; }
-        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-top: 20px; }
-        .logo { font-size: 1.5rem; font-weight: 800; }
-        .v-badge { font-size: 0.8rem; color: #ff4757; vertical-align: super; font-weight: bold; }
+        /* === 🎨 全体の基本設定 === */
+        :root {
+            --spotify-green: #1db954;
+            --spotify-green-hover: #1ed760;
+            --bg-dark: #121212;
+            --text-main: #ffffff;
+            --text-sub: #b3b3b3;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-dark);
+            background: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 650px; /* 少し幅を広げてゆとりを */
+            padding: 24px;
+            box-sizing: border-box;
+        }
+
+        /* === 🧊 グラスモーフィズム（パネル） === */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        /* === 🎩 ヘッダー === */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-top: 10px;
+        }
+        
+        .logo { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+        .v-badge { font-size: 0.75rem; color: #1db954; vertical-align: super; font-weight: bold; margin-left: 4px; }
         .user-info { display: flex; align-items: center; gap: 12px; }
-        #userProfile { font-size: 0.9rem; color: var(--text-sub); font-weight: 600; }
-        .btn { border: none; border-radius: 50px; padding: 12px 24px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn:active { transform: scale(0.96); }
-        .btn-spotify { background-color: var(--spotify-green); color: #000; width: 100%; padding: 16px; margin-top: 10px; }
-        .btn-spotify:hover { background-color: var(--spotify-green-hover); }
-        .btn-sub { background-color: rgba(255, 255, 255, 0.1); color: var(--text-main); }
-        .btn-sub:hover { background-color: rgba(255, 255, 255, 0.2); }
-        .btn-clear { background: transparent; border: 1px solid rgba(255, 255, 255, 0.2); color: var(--text-sub); font-size: 0.8rem; padding: 6px 12px; }
-        .search-box { display: flex; gap: 10px; margin-bottom: 16px; }
-        input[type="text"] { flex-grow: 1; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--glass-border); border-radius: 8px; padding: 14px 16px; color: white; font-size: 1rem; outline: none; }
-        input[type="text"]:focus { border-color: var(--spotify-green); }
-        .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .city-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-        .chip { background: rgba(255, 255, 255, 0.08); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; color: var(--text-sub); cursor: pointer; }
-        .chip:hover { background: rgba(255, 255, 255, 0.2); color: white; }
-        #loading { text-align: center; color: var(--spotify-green); font-weight: 600; padding: 20px; display: none; }
-        .track-card { display: flex; align-items: center; background: rgba(0, 0, 0, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 12px; gap: 16px; }
-        .track-img { width: 56px; height: 56px; border-radius: 4px; }
+        #userProfile { font-size: 0.9rem; color: var(--text-main); font-weight: 600; background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 20px; }
+
+        /* === 🔘 ボタン === */
+        .btn {
+            border: none;
+            border-radius: 50px;
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-spotify { background-color: var(--spotify-green); color: #000; width: 100%; padding: 16px; margin-top: 10px; font-size: 1.1rem; }
+        .btn-spotify:hover { background-color: var(--spotify-green-hover); box-shadow: 0 0 24px rgba(29, 185, 84, 0.3); }
+        .btn-sub { background-color: rgba(255, 255, 255, 0.08); color: var(--text-main); font-size: 0.95rem; }
+        .btn-sub:hover { background-color: rgba(255, 255, 255, 0.15); }
+        .btn-clear { background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); color: var(--text-sub); font-size: 0.85rem; padding: 8px 16px; }
+        .btn-clear:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+
+        /* === 🔍 検索入力欄 === */
+        .search-box { display: flex; gap: 12px; margin-bottom: 20px; }
+        input[type="text"] {
+            flex-grow: 1; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border);
+            border-radius: 12px; padding: 16px 20px; color: white; font-size: 1rem; outline: none; transition: border 0.3s;
+        }
+        input[type="text"]:focus { border-color: var(--spotify-green); background: rgba(0, 0, 0, 0.5); }
+
+        /* === 🕹️ クイックアクション＆チップ === */
+        .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+        .city-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+        .chip {
+            background: rgba(255, 255, 255, 0.08); padding: 8px 16px; border-radius: 20px;
+            font-size: 0.9rem; color: var(--text-sub); cursor: pointer; transition: all 0.2s; border: 1px solid transparent;
+        }
+        .chip:hover { background: rgba(255, 255, 255, 0.15); color: white; border-color: rgba(255,255,255,0.2); }
+
+        /* === 🌤️ 結果表示エリア === */
+        #loading { text-align: center; color: var(--spotify-green); font-size: 1.1rem; font-weight: 600; padding: 30px; display: none; }
+        
+        .weather-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .weather-card h3 { font-size: 2.2rem; margin: 0 0 12px 0; color: #fff; letter-spacing: 1px; }
+        .weather-badges { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+        .weather-badge { background: rgba(0,0,0,0.4); padding: 8px 16px; border-radius: 30px; font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .mode-text { color: var(--spotify-green); font-weight: 700; font-size: 1.05rem; }
+
+        /* === 🎵 楽曲リスト === */
+        .track-card {
+            display: flex; align-items: center; background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 12px; margin-bottom: 12px; transition: all 0.2s;
+        }
+        .track-card:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-2px); border-color: rgba(255,255,255,0.15); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .track-img { width: 64px; height: 64px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); object-fit: cover; }
+        .track-info { flex-grow: 1; margin-left: 16px; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
+        .track-title { font-size: 1.05rem; font-weight: 700; color: #fff; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin-bottom: 4px; }
+        .track-artist { font-size: 0.85rem; color: var(--text-sub); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .spotify-link { 
+            background: rgba(29, 185, 84, 0.15); color: var(--spotify-green); border-radius: 50px; 
+            padding: 8px 16px; font-size: 0.8rem; font-weight: 700; text-decoration: none; transition: all 0.2s; white-space: nowrap; margin-left: 12px;
+        }
+        .spotify-link:hover { background: var(--spotify-green); color: #000; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <header>
-        <div class="logo">🌤️ Weather Beats<span class="v-badge">v2.0</span></div>
+        <div class="logo">🌤️ Weather Beats<span class="v-badge">v3.0</span></div>
         <div class="user-info">
             <span id="userProfile" style="display:none;"></span>
             <button id="clearBtn" class="btn btn-clear">リセット</button>
@@ -48,19 +152,25 @@
     <button id="loginBtn" class="btn btn-spotify">Spotifyアカウントを同期する</button>
 
     <section id="weatherAppSection" class="glass-panel" style="display:none;">
+        <h2 style="margin-top: 0; font-size: 1.3rem; margin-bottom: 20px; font-weight: 800;">今の空模様で、選曲する。</h2>
+        
         <div class="search-box">
-            <input type="text" id="cityInput" placeholder="都市名 (例: Kyoto)">
-            <button id="getWeatherBtn" class="btn btn-spotify" style="width:auto; margin-top:0; padding:14px 20px;">検索</button>
+            <input type="text" id="cityInput" placeholder="都市名をローマ字で入力 (例: Kyoto)">
+            <button id="getWeatherBtn" class="btn btn-spotify" style="width:auto; margin-top:0; padding:16px 24px;">検索</button>
         </div>
+
         <div class="quick-actions">
             <button id="gpsBtn" class="btn btn-sub">📍 現在地</button>
             <button id="tripBtn" class="btn btn-sub">🎲 ランダム</button>
         </div>
+
+        <div style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 12px; font-weight: 600;">人気の都市:</div>
         <div class="city-chips">
             <div class="chip" onclick="selectCity('Tokyo')">Tokyo</div>
             <div class="chip" onclick="selectCity('London')">London</div>
             <div class="chip" onclick="selectCity('Paris')">Paris</div>
             <div class="chip" onclick="selectCity('New York')">New York</div>
+            <div class="chip" onclick="selectCity('Reykjavik')">Reykjavik</div>
             <div class="chip" onclick="selectCity('Honolulu')">Honolulu</div>
         </div>
     </section>
@@ -112,21 +222,19 @@
         if (resultDiv) resultDiv.innerHTML = "";
         if (loader) {
             loader.style.display = "block";
-            loader.innerText = "🎵 選曲中...";
+            loader.innerText = "🎵 気候と時間を同期中...";
         }
 
         try {
             const wRes = await fetch(weatherUrl);
             const wData = await wRes.json();
             
-            // 💡 == 200 に変更（念のためのエラー回避）
             if (wData.cod != 200) throw new Error("都市が見つかりません。ローマ字で入力してください");
 
             const weather = wData.weather[0].main;
             const temp = Math.round(wData.main.temp);
             const cityName = wData.name;
 
-            // 💡 現地時間の計算ロジック（そのままですが確実です）
             const d = new Date();
             const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
             const localTime = new Date(utc + (wData.timezone * 1000));
@@ -141,8 +249,6 @@
             else if (hour >= 11 && hour < 16) { timeTag = "afternoon sunny happy"; timeLabel = "☀️ 昼の快適"; }
             else if (hour >= 16 && hour < 19) { timeTag = "sunset twilight chill"; timeLabel = "🌆 夕方の哀愁"; }
 
-            if (loader) loader.innerText = `🎵 ${cityName}（現地時間 ${localTimeStr}）を選曲中...`;
-
             let weatherTag = "chill";
             if (weather === "Clear") weatherTag = temp >= 25 ? "summer energetic" : "happy breezy";
             else if (weather === "Rain") weatherTag = "rainy jazz piano mellow";
@@ -156,17 +262,17 @@
 
             if (loader) loader.style.display = "none";
             
-            // 💡 画面に表示するHTML（現地時間がはっきり出るように修正）
+            // 🌟 綺麗なカード型に変更した部分
             let html = `
-                <div style="text-align:center; margin-bottom:20px; padding:15px; background:rgba(0,0,0,0.4); border-radius:12px;">
-                    <div style="font-size: 1.4rem; font-weight: bold; color: var(--spotify-green); margin-bottom:8px;">${cityName}</div>
-                    <div style="font-size: 1.1rem; color: #fff; font-weight:bold; margin-bottom:4px;">
-                        ⏰ 現地時間: ${localTimeStr} <span style="font-size:0.9rem; font-weight:normal;">(${timeLabel}モード)</span>
+                <div class="weather-card">
+                    <h3>${cityName}</h3>
+                    <div class="weather-badges">
+                        <span class="weather-badge">⏰ ${localTimeStr}</span>
+                        <span class="weather-badge">🌤️ ${temp}℃ / ${weather}</span>
                     </div>
-                    <div style="font-size: 0.9rem; color: var(--text-sub);">
-                        🌤️ 天気: ${temp}℃ / ${weather}
-                    </div>
-                </div>`;
+                    <div class="mode-text">✨ ${timeLabel} モード</div>
+                </div>
+            `;
             
             const trackUris = [];
             if (sData && sData.tracks && sData.tracks.items) {
@@ -175,22 +281,22 @@
                     html += `
                         <div class="track-card">
                             <img src="${track.album.images[0].url}" class="track-img">
-                            <div style="flex-grow:1; overflow:hidden;">
-                                <div style="font-weight:bold; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${track.name}</div>
-                                <div style="font-size:0.8rem; color:#888;">${track.artists[0].name}</div>
-                                <a href="${track.external_urls.spotify}" target="_blank" style="color:var(--spotify-green); font-size:0.7rem; text-decoration:none;">SPOTIFYで聴く</a>
+                            <div class="track-info">
+                                <div class="track-title">${track.name}</div>
+                                <div class="track-artist">${track.artists[0].name}</div>
                             </div>
+                            <a href="${track.external_urls.spotify}" target="_blank" class="spotify-link">再生</a>
                         </div>`;
                 });
             }
 
-            html += `<button class="btn btn-spotify" onclick='window.savePlaylist(this, "${cityName} Weather", ${JSON.stringify(trackUris)})'>💾 プレイリストを保存</button>`;
+            html += `<button class="btn btn-spotify" style="margin-top: 24px;" onclick='window.savePlaylist(this, "${cityName} Weather Beats", ${JSON.stringify(trackUris)})'>💾 プレイリストをSpotifyに保存</button>`;
+            
             if (resultDiv) resultDiv.innerHTML = html;
 
         } catch (e) { 
             if (loader) loader.style.display = "none";
-            console.error("エラー詳細:", e);
-            alert("エラーが発生しました: " + e.message); 
+            alert(e.message); 
         }
     }
 
@@ -219,7 +325,7 @@
             if (!r2.ok) throw new Error("楽曲の追加に失敗");
             
             const spotifyUrl = d1.external_urls.spotify;
-            btn.outerHTML = `<a href="${spotifyUrl}" target="_blank" class="btn btn-spotify" style="text-decoration:none;">✨ 成功！Spotifyで開く</a>`;
+            btn.outerHTML = `<a href="${spotifyUrl}" target="_blank" class="btn btn-spotify" style="text-decoration:none; display:flex; justify-content:center;">✨ 成功！Spotifyで開く</a>`;
             window.open(spotifyUrl, '_blank');
         } catch (e) { alert("保存失敗: " + e.message); btn.innerText = originalText; }
     };
@@ -264,7 +370,7 @@
                 .then(r => r.json()).then(data => {
                     const profile = document.getElementById("userProfile");
                     if (profile && data && data.display_name) {
-                        profile.innerText = `👤 Hello, ${data.display_name}`;
+                        profile.innerText = `👤 ${data.display_name}`;
                         profile.style.display = "block";
                     }
                 });
