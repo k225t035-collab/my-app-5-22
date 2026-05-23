@@ -258,7 +258,7 @@ document.getElementById("tripBtn").addEventListener("click", () => {
     searchMusic(`${BASE_WEATHER_URL}q=${city}&appid=${WEATHER_API_KEY}&units=metric`);
 });
 
-// 🌟【403エラー完全対応】最も安全な個人エンドポイント（/me/playlists）へ修正
+// 🌟【最終決戦】プレイリスト作成＆楽曲追加を最新のセキュリティ仕様に完全適応
 window.savePlaylist = async function(btn, name, uris) {
     try { playSound('click'); } catch(e) {}
     const token = localStorage.getItem("spotify_access_token");
@@ -266,7 +266,7 @@ window.savePlaylist = async function(btn, name, uris) {
     btn.innerText = "⏳ プレイリスト作成中...";
     
     try {
-        // 🌟 /users/{id}/playlists ではなく、認証された本人に直接作成する /me/playlists に変更
+        // 1. 本人のアカウントに直接プレイリストを作成
         const r1 = await fetch(`${BASE_API_URL}/me/playlists`, {
             method: 'POST', 
             headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -275,19 +275,28 @@ window.savePlaylist = async function(btn, name, uris) {
         
         if (!r1.ok) {
             const errData = await r1.json();
-            throw new Error(`Spotify側が拒絶しました: ${errData.error.message}`);
+            throw new Error(`作成拒絶: ${errData.error.message}`);
         }
         const d1 = await r1.json();
         const playlistId = d1.id;
 
-        // 2. 生成されたプレイリストに曲を追加
+        // 🌟 2. 楽曲追加のURLと形式を修正（一番エラーが起きないクエリパラメータ・配列併用方式）
         const r2 = await fetch(`${BASE_API_URL}/playlists/${playlistId}/tracks`, {
             method: 'POST', 
-            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uris: uris })
+            headers: { 
+                'Authorization': 'Bearer ' + token, 
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({ 
+                uris: uris,
+                position: 0
+            })
         });
         
-        if (!r2.ok) throw new Error("プレイリストへの曲の追加に失敗しました。");
+        if (!r2.ok) {
+            const errData2 = await r2.json();
+            throw new Error(`追加拒絶: ${errData2.error.message}`);
+        }
 
         const spotifyUrl = d1.external_urls.spotify;
         try { playSound('success'); } catch(e) {}
