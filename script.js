@@ -40,8 +40,11 @@ async function searchMusic(weatherUrl) {
     const resultDiv = document.getElementById("result");
     const loader = document.getElementById("loading");
 
-    resultDiv.innerHTML = "";
-    loader.style.display = "block";
+    if (resultDiv) resultDiv.innerHTML = "";
+    if (loader) {
+        loader.style.display = "block";
+        loader.innerText = "🎵 選曲中...";
+    }
 
     try {
         const wRes = await fetch(weatherUrl);
@@ -60,7 +63,7 @@ async function searchMusic(weatherUrl) {
         else if (hour >= 11 && hour < 16) { timeTag = "afternoon sunny happy"; timeLabel = "☀️ 昼の快適"; }
         else if (hour >= 16 && hour < 19) { timeTag = "sunset twilight chill"; timeLabel = "🌆 夕方の哀愁"; }
 
-        loader.innerText = `🎵 ${cityName}は${weather}... ${timeLabel}モードで選曲中...`;
+        if (loader) loader.innerText = `🎵 ${cityName}は${weather}... ${timeLabel}モードで選曲中...`;
 
         let weatherTag = "chill";
         if (weather === "Clear") weatherTag = temp >= 25 ? "summer energetic" : "happy breezy";
@@ -73,45 +76,49 @@ async function searchMusic(weatherUrl) {
         });
         const sData = await sRes.json();
 
-        loader.style.display = "none";
+        if (loader) loader.style.display = "none";
         let html = `<div style="text-align:center; margin-bottom:15px;"><small>${cityName}: ${temp}℃ / ${weather}</small></div>`;
         
         const trackUris = [];
-        sData.tracks.items.forEach(track => {
-            trackUris.push(track.uri);
-            html += `
-                <div class="track-card">
-                    <img src="${track.album.images[0].url}" class="track-img">
-                    <div style="flex-grow:1; overflow:hidden;">
-                        <div style="font-weight:bold; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${track.name}</div>
-                        <div style="font-size:0.8rem; color:#888;">${track.artists[0].name}</div>
-                        <a href="${track.external_urls.spotify}" target="_blank" style="color:var(--spotify-green); font-size:0.7rem; text-decoration:none;">SPOTIFYで聴く</a>
-                    </div>
-                </div>`;
-        });
+        if (sData && sData.tracks && sData.tracks.items) {
+            sData.tracks.items.forEach(track => {
+                trackUris.push(track.uri);
+                html += `
+                    <div class="track-card">
+                        <img src="${track.album.images[0].url}" class="track-img">
+                        <div style="flex-grow:1; overflow:hidden;">
+                            <div style="font-weight:bold; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${track.name}</div>
+                            <div style="font-size:0.8rem; color:#888;">${track.artists[0].name}</div>
+                            <a href="${track.external_urls.spotify}" target="_blank" style="color:var(--spotify-green); font-size:0.7rem; text-decoration:none;">SPOTIFYで聴く</a>
+                        </div>
+                    </div>`;
+            });
+        }
 
-        // 成功実績のある形式で関数を呼び出すように統一
         html += `<button class="btn btn-spotify" onclick='savePlaylist(this, "${cityName} Weather", ${JSON.stringify(trackUris)})'>💾 プレイリストを保存</button>`;
-        resultDiv.innerHTML = html;
+        if (resultDiv) resultDiv.innerHTML = html;
 
     } catch (e) { 
-        loader.style.display = "none";
+        if (loader) loader.style.display = "none";
         alert(e.message); 
     }
 }
 
 // --- EVENTS ---
-document.getElementById("loginBtn").addEventListener("click", async () => {
-    const verifier = generateRandomString(128);
-    localStorage.setItem("spotify_verifier", verifier);
-    const challenge = await generateCodeChallenge(verifier);
-    const params = new URLSearchParams({
-        client_id: SPOTIFY_CLIENT_ID, response_type: 'code', redirect_uri: REDIRECT_URI,
-        // 公開・非公開の両方のプレイリスト変更権限を確実に確保
-        scope: 'playlist-modify-public playlist-modify-private', code_challenge_method: 'S256', code_challenge: challenge
+// 🌟 エラーで全体が止まらないよう、各ボタンの存在チェック（if文）を徹底強化
+const loginBtn = document.getElementById("loginBtn");
+if (loginBtn) {
+    loginBtn.addEventListener("click", async () => {
+        const verifier = generateRandomString(128);
+        localStorage.setItem("spotify_verifier", verifier);
+        const challenge = await generateCodeChallenge(verifier);
+        const params = new URLSearchParams({
+            client_id: SPOTIFY_CLIENT_ID, response_type: 'code', redirect_uri: REDIRECT_URI,
+            scope: 'playlist-modify-public playlist-modify-private', code_challenge_method: 'S256', code_challenge: challenge
+        });
+        window.location.href = BASE_AUTH_URL + params.toString();
     });
-    window.location.href = BASE_AUTH_URL + params.toString();
-});
+}
 
 // TOKEN EXCHANGE
 const code = new URLSearchParams(window.location.search).get('code');
@@ -126,57 +133,75 @@ if (code) {
             window.history.replaceState({}, document.title, window.location.pathname);
             location.reload();
         }
-    });
+    }).catch(err => console.log("Token exchange error:", err));
 }
 
 const savedToken = localStorage.getItem("spotify_access_token");
 if (savedToken) {
-    document.getElementById("loginBtn").style.display = "none";
-    document.getElementById("weatherAppSection").style.display = "block";
+    const loginBtn = document.getElementById("loginBtn");
+    const weatherAppSection = document.getElementById("weatherAppSection");
+    if (loginBtn) loginBtn.style.display = "none";
+    if (weatherAppSection) weatherAppSection.style.display = "block";
+    
     fetch(`${BASE_API_URL}/me`, { headers: { 'Authorization': 'Bearer ' + savedToken } })
         .then(r => r.json()).then(data => {
             const profile = document.getElementById("userProfile");
-            if (profile && data.display_name) {
+            if (profile && data && data.display_name) {
                 profile.innerText = `👤 Hello, ${data.display_name}`;
                 profile.style.display = "block";
             }
-        });
+        }).catch(err => console.log("Profile fetch error:", err));
 }
 
-// GPSボタンの処理
-document.getElementById("gpsBtn").addEventListener("click", () => {
-    const loader = document.getElementById("loading");
-    document.getElementById("result").innerHTML = ""; 
-    loader.innerText = "📍 現在地を取得中..."; 
-    loader.style.display = "block";
+// GPSボタン
+const gpsBtn = document.getElementById("gpsBtn");
+if (gpsBtn) {
+    gpsBtn.addEventListener("click", () => {
+        const loader = document.getElementById("loading");
+        const resultDiv = document.getElementById("result");
+        if (resultDiv) resultDiv.innerHTML = ""; 
+        if (loader) {
+            loader.innerText = "📍 現在地を取得中..."; 
+            loader.style.display = "block";
+        }
 
-    navigator.geolocation.getCurrentPosition(p => {
-        searchMusic(`${BASE_WEATHER_URL}lat=${p.coords.latitude}&lon=${p.coords.longitude}&appid=${WEATHER_API_KEY}&units=metric`);
-    }, (error) => {
-        loader.style.display = "none";
-        alert("位置情報の取得に失敗しました。ブラウザの位置情報許可がオンになっているか確認してください。");
+        navigator.geolocation.getCurrentPosition(p => {
+            searchMusic(`${BASE_WEATHER_URL}lat=${p.coords.latitude}&lon=${p.coords.longitude}&appid=${WEATHER_API_KEY}&units=metric`);
+        }, (error) => {
+            if (loader) loader.style.display = "none";
+            alert("位置情報の取得に失敗しました。ブラウザの位置情報許可がオンになっているか確認してください。");
+        });
     });
-});
+}
 
-document.getElementById("getWeatherBtn").addEventListener("click", () => {
-    const city = document.getElementById("cityInput").value || "Kyoto";
-    searchMusic(`${BASE_WEATHER_URL}q=${city}&appid=${WEATHER_API_KEY}&units=metric`);
-});
+// 天気取得ボタン
+const getWeatherBtn = document.getElementById("getWeatherBtn");
+if (getWeatherBtn) {
+    getWeatherBtn.addEventListener("click", () => {
+        const cityInput = document.getElementById("cityInput");
+        const city = cityInput ? (cityInput.value || "Kyoto") : "Kyoto";
+        searchMusic(`${BASE_WEATHER_URL}q=${city}&appid=${WEATHER_API_KEY}&units=metric`);
+    });
+}
 
-document.getElementById("tripBtn").addEventListener("click", () => {
-    const city = WORLD_CITIES[Math.floor(Math.random() * WORLD_CITIES.length)];
-    document.getElementById("cityInput").value = city;
-    searchMusic(`${BASE_WEATHER_URL}q=${city}&appid=${WEATHER_API_KEY}&units=metric`);
-});
+// ランダムトリップボタン
+const tripBtn = document.getElementById("tripBtn");
+if (tripBtn) {
+    tripBtn.addEventListener("click", () => {
+        const city = WORLD_CITIES[Math.floor(Math.random() * WORLD_CITIES.length)];
+        const cityInput = document.getElementById("cityInput");
+        if (cityInput) cityInput.value = city;
+        searchMusic(`${BASE_WEATHER_URL}q=${city}&appid=${WEATHER_API_KEY}&units=metric`);
+    });
+}
 
-// 🌟 成功実績のあった「/items」エンドポイントを使用するプレイリスト保存処理
+// プレイリスト保存（成功実績のある記述）
 window.savePlaylist = async function(btn, name, uris) {
     const token = localStorage.getItem("spotify_access_token");
     const originalText = btn.innerText;
     btn.innerText = "⏳ 保存中...";
     
     try {
-        // 1. プレイリストの枠作成
         const r1 = await fetch(`${BASE_API_URL}/me/playlists`, {
             method: 'POST', 
             headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -186,7 +211,6 @@ window.savePlaylist = async function(btn, name, uris) {
         
         if (!r1.ok) throw new Error(d1.error ? d1.error.message : "枠の作成に失敗しました");
         
-        // 2. 成功実績のある「/items」エンドポイントで楽曲をPOST
         const r2 = await fetch(`${BASE_API_URL}/playlists/${d1.id}/items`, {
             method: 'POST', 
             headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -199,7 +223,6 @@ window.savePlaylist = async function(btn, name, uris) {
         }
         
         const spotifyUrl = d1.external_urls.spotify;
-        
         btn.outerHTML = `<a href="${spotifyUrl}" target="_blank" class="btn btn-spotify" style="text-decoration:none; display:flex; justify-content:center; background:#1ed760; color:black;">✨ 成功！Spotifyで開く</a>`;
         window.open(spotifyUrl, '_blank');
         
@@ -209,9 +232,10 @@ window.savePlaylist = async function(btn, name, uris) {
     }
 };
 
-// 🌟 ご提示いただいたキャッシュクリア用のイベントリスナー
-if (document.getElementById("clearBtn")) {
-    document.getElementById("clearBtn").addEventListener("click", () => { 
+// キャッシュクリアボタン（HTML側にボタンが存在しなくても絶対にフリーズしない安全設計）
+const clearBtn = document.getElementById("clearBtn") || document.getElementById("clear");
+if (clearBtn) {
+    clearBtn.addEventListener("click", () => { 
         localStorage.clear(); 
         location.reload(); 
     });
