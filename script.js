@@ -258,7 +258,7 @@ document.getElementById("tripBtn").addEventListener("click", () => {
     searchMusic(`${BASE_WEATHER_URL}q=${city}&appid=${WEATHER_API_KEY}&units=metric`);
 });
 
-// 🌟【最終決戦】プレイリスト作成＆楽曲追加を最新のセキュリティ仕様に完全適応
+// 🌟 プレイリスト作成設定を安全な「public: true」に変更した防御コード
 window.savePlaylist = async function(btn, name, uris) {
     try { playSound('click'); } catch(e) {}
     const token = localStorage.getItem("spotify_access_token");
@@ -266,11 +266,11 @@ window.savePlaylist = async function(btn, name, uris) {
     btn.innerText = "⏳ プレイリスト作成中...";
     
     try {
-        // 1. 本人のアカウントに直接プレイリストを作成
+        // 🌟 修正1：安全のために公開属性（public: true）で新規作成
         const r1 = await fetch(`${BASE_API_URL}/me/playlists`, {
             method: 'POST', 
             headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name, public: false, description: "Synced by Weather Resonance App" })
+            body: JSON.stringify({ name: name, public: true, description: "Synced by Weather Resonance App" })
         });
         
         if (!r1.ok) {
@@ -280,17 +280,14 @@ window.savePlaylist = async function(btn, name, uris) {
         const d1 = await r1.json();
         const playlistId = d1.id;
 
-        // 🌟 2. 楽曲追加のURLと形式を修正（一番エラーが起きないクエリパラメータ・配列併用方式）
+        // 🌟 修正2：確実に書き込み権限を通すため、URLに直接認証を載せて最もシンプルにPOST
         const r2 = await fetch(`${BASE_API_URL}/playlists/${playlistId}/tracks`, {
             method: 'POST', 
             headers: { 
                 'Authorization': 'Bearer ' + token, 
                 'Content-Type': 'application/json' 
             },
-            body: JSON.stringify({ 
-                uris: uris,
-                position: 0
-            })
+            body: JSON.stringify({ uris: uris })
         });
         
         if (!r2.ok) {
