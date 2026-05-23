@@ -1,28 +1,23 @@
-// ====== あなたの設定項目 ======
+// ====== 設定済み項目 ======
 const WEATHER_API_KEY = "6569f9193b1871a2521eeb1bb5ffc92a";
 const SPOTIFY_CLIENT_ID = "25fdf849cdf44da99c0730897f152a37";
 const REDIRECT_URI = "https://k225t035-collab.github.io/my-app-5-22/";
-// =============================
+// =========================
 
-const s_part1 = "accounts";
-const s_part2 = "spotify";
-const s_part3 = "com";
-const s_part4 = "api";
-
-const BASE_AUTH_URL = `https://${s_part1}.${s_part2}.${s_part3}/authorize?`;
-const BASE_TOKEN_URL = `https://${s_part1}.${s_part2}.${s_part3}/api/token`;
+// Spotify公式の正しい通信URLに修正済みです
+const BASE_AUTH_URL = "https://accounts.spotify.com/authorize?";
+const BASE_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
-const BASE_API_URL = `https://${s_part4}.${s_part2}.${s_part3}/v1`;
+const BASE_API_URL = "https://api.spotify.com/v1";
 
 let currentTrackUris = [];     
 let currentPlaylistName = "";  
 
+// --- 便利ツール ---
 function generateRandomString(length) {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < length; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
+    for (let i = 0; i < length; i++) text += possible.charAt(Math.floor(Math.random() * possible.length));
     return text;
 }
 
@@ -40,31 +35,24 @@ async function fetchUserProfile(accessToken) {
         const response = await fetch(`${BASE_API_URL}/me`, {
             headers: { 'Authorization': 'Bearer ' + accessToken }
         });
-        
-        if (response.status === 401) {
-            localStorage.removeItem("spotify_access_token");
-            return;
-        }
-
+        if (!response.ok) return;
         const data = await response.json();
         const profileDiv = document.getElementById("userProfile");
-        
-        profileDiv.innerText = `👤 ${data.display_name} (${data.id})`;
+        profileDiv.innerText = `👤 ログイン中: ${data.display_name}`;
         profileDiv.style.display = "block"; 
-    } catch (error) {
-        console.error("ユーザー情報の取得に失敗:", error);
-    }
+    } catch (e) { console.error(e); }
 }
 
+// --- 1. Spotify Login ---
 document.getElementById("loginBtn").addEventListener("click", async () => {
     const verifier = generateRandomString(128);
     localStorage.setItem("spotify_verifier", verifier);
     const challenge = await generateCodeChallenge(verifier);
 
     const params = new URLSearchParams({
-        client_id: SPOTIFY_CLIENT_ID.trim(),
+        client_id: SPOTIFY_CLIENT_ID,
         response_type: 'code',
-        redirect_uri: REDIRECT_URI.trim(),
+        redirect_uri: REDIRECT_URI,
         scope: 'playlist-modify-public playlist-modify-private', 
         code_challenge_method: 'S256',
         code_challenge: challenge,
@@ -73,19 +61,17 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     window.location.href = BASE_AUTH_URL + params.toString(); 
 });
 
+// --- 2. Token Exchange ---
 const urlParams = new URLSearchParams(window.location.search);
 const code = urlParams.get('code');
 
 if (code) {
-    document.getElementById("loginBtn").innerText = "⏳ 連携処理中...";
-    document.getElementById("loginBtn").disabled = true;
     const verifier = localStorage.getItem("spotify_verifier");
-
     const body = new URLSearchParams({
-        client_id: SPOTIFY_CLIENT_ID.trim(),
+        client_id: SPOTIFY_CLIENT_ID,
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: REDIRECT_URI.trim(),
+        redirect_uri: REDIRECT_URI,
         code_verifier: verifier
     });
 
@@ -94,229 +80,133 @@ if (code) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
         if (data.access_token) {
             localStorage.setItem("spotify_access_token", data.access_token);
             window.history.replaceState({}, document.title, window.location.pathname);
-            document.getElementById("loginBtn").innerText = "🔒 Spotify連携済み";
-            document.getElementById("getWeatherBtn").disabled = false;
-            document.getElementById("result").innerHTML = "<p>連携が成功しました！天気を検索してみましょう。</p>";
-            
-            fetchUserProfile(data.access_token);
-        } else {
-            document.getElementById("result").innerHTML = `<p style="color:#ff6b6b;">【Spotify認証エラー】${JSON.stringify(data)}</p>`;
+            location.reload(); 
         }
-    })
-    .catch(error => {
-        document.getElementById("result").innerHTML = `<p style="color:#ff6b6b;">【Spotify通信エラー】${error.message}</p>`;
     });
-} else if (localStorage.getItem("spotify_access_token")) {
-    const savedToken = localStorage.getItem("spotify_access_token");
-    document.getElementById("loginBtn").innerText = "🔒 Spotify連携済み";
+}
+
+const savedToken = localStorage.getItem("spotify_access_token");
+if (savedToken) {
+    document.getElementById("loginBtn").innerText = "🔒 連携済み";
     document.getElementById("loginBtn").disabled = true;
     document.getElementById("getWeatherBtn").disabled = false;
-    
     fetchUserProfile(savedToken);
 }
 
-async function fetchWeatherAndMusic(weatherUrl) {
+// --- 核心：Recommendations APIによる選曲ロジック ---
+async function searchMusic(weatherUrl) {
     const accessToken = localStorage.getItem("spotify_access_token");
-    if (!accessToken) return alert("Spotifyと連携してください");
-
     try {
-        const weatherResponse = await fetch(weatherUrl);
-        const weatherData = await weatherResponse.json();
+        // 天気情報の取得
+        const wRes = await fetch(weatherUrl);
+        const wData = await wRes.json();
+        if (wData.cod !== 200) throw new Error("都市が見つかりません");
 
-        if (weatherData.cod === "404") {
-            throw new Error(`都市が見つかりませんでした。スペルを確認してください。`);
-        } else if (weatherData.cod && weatherData.cod !== 200) {
-            throw new Error(`【天気APIエラー】${weatherData.message}`);
-        }
+        const weather = wData.weather[0].main;
+        const temp = Math.round(wData.main.temp);
+        
+        // ジャンルの取得（lofiはSpotifyのseedジャンルに無いためchillに変換）
+        let rawGenre = document.getElementById("genreSelect").value;
+        let seedGenre = rawGenre === "lofi" ? "chill" : rawGenre;
+        const genreLabel = document.getElementById("genreSelect").options[document.getElementById("genreSelect").selectedIndex].text;
 
-        const weather = weatherData.weather[0].main; 
-        const temp = Math.round(weatherData.main.temp);
-        const actualCityName = weatherData.name;
+        // 🌟 気温と天気による音楽のパラメータ設定（0.0〜1.0）
+        let targetEnergy = 0.5;       // 曲の激しさ・ノリ
+        let targetValence = 0.5;      // 曲の明るさ・ハッピー感
+        let targetAcoustic = 0.5;     // アコースティック感（電子音の少なさ）
 
-        // 🌟 新機能：HTMLで選んだジャンルを取得
-        const genreSelectEl = document.getElementById("genreSelect");
-        const selectedGenre = genreSelectEl ? genreSelectEl.value : "pop"; // HTMLが無い場合の保険
-        const genreText = genreSelectEl ? genreSelectEl.options[genreSelectEl.selectedIndex].text : "ポップ";
-
-        currentPlaylistName = `Weather Beats: ${actualCityName} (${temp}℃ / ${weather})`;
-
-        // 🌟 新機能：天気と【気温】に応じたムード判定ロジック
-        let mood = "";
         if (weather === "Clear") {
-            if (temp >= 26) mood = "summer upbeat energetic";    // 26度以上の暑い晴れ
-            else if (temp >= 15) mood = "happy drive breeze";    // 15〜25度の快適な晴れ
-            else mood = "acoustic chill relaxing";               // 14度以下の涼しい/寒い晴れ
+            if (temp >= 26) { targetEnergy = 0.8; targetValence = 0.8; targetAcoustic = 0.1; } // 猛暑: ノリノリ
+            else if (temp >= 15) { targetEnergy = 0.6; targetValence = 0.7; targetAcoustic = 0.3; } // 快適: さわやか
+            else { targetEnergy = 0.4; targetValence = 0.6; targetAcoustic = 0.7; } // 寒い晴れ: アコースティック
         } else if (weather === "Rain") {
-            if (temp >= 20) mood = "rain mellow humid";          // 暖かい雨
-            else mood = "dark moody rain piano";                 // 寒い雨
+            if (temp >= 20) { targetEnergy = 0.4; targetValence = 0.4; targetAcoustic = 0.5; } // 暖かい雨: メロウ
+            else { targetEnergy = 0.2; targetValence = 0.3; targetAcoustic = 0.8; } // 寒い雨: しっとり暗め
         } else if (weather === "Clouds") {
-            if (temp >= 20) mood = "cloudy groove smooth";       // 暖かい曇り
-            else mood = "ambient relax calm";                    // 寒い曇り
+            targetEnergy = 0.4; targetValence = 0.5; targetAcoustic = 0.5; // 曇り: リラックス
         } else if (weather === "Snow") {
-            mood = "winter snowy quiet cozy";                    // 雪
-        } else {
-            mood = "good vibe";                                  // その他
+            targetEnergy = 0.2; targetValence = 0.4; targetAcoustic = 0.9; // 雪: 静寂
         }
 
-        // Spotifyに投げる検索ワード（ジャンル名 ＋ 気温・天気のムード）
-        const searchQuery = `${selectedGenre} ${mood}`; 
-        console.log("検索クエリ:", searchQuery); // 開発確認用
-
-        const spotifySearchUrl = `${BASE_API_URL}/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=5`;
-        const spotifyResponse = await fetch(spotifySearchUrl, {
+        currentPlaylistName = `Weather: ${wData.name} (${temp}℃ / ${weather})`;
+        
+        // Recommendations API へリクエスト
+        const recUrl = `${BASE_API_URL}/recommendations?limit=5&seed_genres=${seedGenre}&target_energy=${targetEnergy}&target_valence=${targetValence}&target_acousticness=${targetAcoustic}`;
+        
+        const sRes = await fetch(recUrl, {
             headers: { 'Authorization': 'Bearer ' + accessToken }
         });
-        const spotifyData = await spotifyResponse.json();
+        const sData = await sRes.json();
 
-        if (spotifyData.error) {
-            if (spotifyData.error.status === 401 || spotifyData.error.message.includes("expired")) {
-                localStorage.removeItem("spotify_access_token");
-                throw new Error("Spotifyの連携期限が切れました。<br>🔄 ページを再読み込みして連携し直してください。");
-            }
-            throw new Error(`【Spotifyエラー】${spotifyData.error.message}`);
-        }
+        if (sData.error) throw new Error(`Spotifyエラー: ${sData.error.message}`);
 
-        let htmlContent = `
-            <h3 style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">
-                ☁️ ${actualCityName}: ${weather} (${temp}℃)
-                <div style="font-size: 0.8rem; margin-top: 5px; color: #1DB954;">🎵 ジャンル: ${genreText}</div>
-            </h3>
-            <ul style="list-style: none; padding: 0; margin: 0;">
-        `;
+        let html = `<h4>☁️ ${wData.name}: ${temp}℃ (${weather})</h4><p style="font-size:0.8rem; color:#1DB954;">ジャンル: ${genreLabel}</p>`;
+        currentTrackUris = [];
 
-        currentTrackUris = []; 
-
-        if (spotifyData.tracks && spotifyData.tracks.items && spotifyData.tracks.items.length > 0) {
-            spotifyData.tracks.items.forEach((track) => {
-                const albumImg = track.album.images[0] ? track.album.images[0].url : "";
+        if (sData.tracks && sData.tracks.length > 0) {
+            sData.tracks.forEach(track => {
                 currentTrackUris.push(track.uri);
-                const trackSpotifyUrl = track.external_urls.spotify;
-                
-                htmlContent += `
-                    <li style="display: flex; flex-direction: column; background: rgba(0,0,0,0.3); margin-bottom: 15px; padding: 12px; border-radius: 12px;">
-                        <div style="display: flex; align-items: center; width: 100%;">
-                            <img src="${albumImg}" alt="Album Art" style="width: 55px; height: 55px; border-radius: 8px; margin-right: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-                            <div style="flex-grow: 1; text-align: left; overflow: hidden;">
-                                <strong style="font-size: 1rem; display: block; margin-bottom: 3px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.name}</strong>
-                                <span style="font-size: 0.8rem; color: #b3b3b3; display: block; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.artists[0].name}</span>
-                            </div>
+                html += `
+                    <div style="display:flex; align-items:center; margin-bottom:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:10px;">
+                        <img src="${track.album.images[0].url}" style="width:50px; border-radius:5px; margin-right:12px;">
+                        <div style="flex-grow:1; overflow:hidden;">
+                            <div style="font-weight:bold; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${track.name}</div>
+                            <div style="font-size:0.8rem; color:#aaa;">${track.artists[0].name}</div>
+                            <a href="${track.external_urls.spotify}" target="_blank" style="color:#1DB954; font-size:0.75rem; text-decoration:none;">▶︎ フル再生</a>
                         </div>
-                        <div style="width: 100%; text-align: right; margin-top: 10px;">
-                            <a href="${trackSpotifyUrl}" target="_blank" style="display: inline-block; background-color: #1DB954; color: white; padding: 6px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
-                                ▶︎ Spotifyでフル再生
-                            </a>
-                        </div>
-                    </li>
+                    </div>
                 `;
             });
-
-            htmlContent += `
-                </ul>
-                <button id="playlistBtn" class="btn" style="margin-top: 20px;" onclick="saveToSpotifyPlaylist(this)">💾 この5曲をプレイリストに保存</button>
-            `;
+            html += `<button id="playlistBtn" class="btn" style="background:#1DB954; color:white;" onclick="savePlaylist(this)">💾 プレイリストを保存</button>`;
         } else {
-            htmlContent += "<li>条件に合う曲が見つかりませんでした。別のジャンルを試してください。</li></ul>";
+            html += "<p>条件に合う曲が見つかりませんでした。</p>";
         }
+        
+        document.getElementById("result").innerHTML = html;
 
-        document.getElementById("result").innerHTML = htmlContent;
-
-    } catch (error) {
-        document.getElementById("result").innerHTML = `<p style="color: #ff6b6b;"><strong>エラーが発生しました：</strong><br>${error.message}</p>`;
-    }
+    } catch (e) { alert(e.message); }
 }
 
+// --- ボタン操作 ---
 document.getElementById("getWeatherBtn").addEventListener("click", () => {
-    const inputCity = document.getElementById("cityInput").value.trim() || "Kyoto";
-    const safeApiKey = encodeURIComponent(WEATHER_API_KEY.trim());
-    const weatherUrl = BASE_WEATHER_URL + `q=${encodeURIComponent(inputCity)}&appid=${safeApiKey}&units=metric`;
-    fetchWeatherAndMusic(weatherUrl);
+    const city = document.getElementById("cityInput").value || "Kyoto";
+    searchMusic(`${BASE_WEATHER_URL}q=${city}&appid=${WEATHER_API_KEY}&units=metric`);
 });
 
 document.getElementById("gpsBtn").addEventListener("click", () => {
-    if (!navigator.geolocation) return alert("お使いのブラウザはGPSに対応していません");
-    
-    document.getElementById("result").innerHTML = "<p style='text-align:center;'>📍 現在地を特定中...</p>";
-    
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            const safeApiKey = encodeURIComponent(WEATHER_API_KEY.trim());
-            const weatherUrl = BASE_WEATHER_URL + `lat=${lat}&lon=${lon}&appid=${safeApiKey}&units=metric`;
-            fetchWeatherAndMusic(weatherUrl);
-        },
-        (error) => {
-            document.getElementById("result").innerHTML = `<p style="color: #ff6b6b;">GPS取得失敗: ${error.message}</p>`;
-        }
-    );
+    navigator.geolocation.getCurrentPosition(p => {
+        searchMusic(`${BASE_WEATHER_URL}lat=${p.coords.latitude}&lon=${p.coords.longitude}&appid=${WEATHER_API_KEY}&units=metric`);
+    });
 });
 
-window.saveToSpotifyPlaylist = async function(btn) {
-    const accessToken = localStorage.getItem("spotify_access_token");
-    if (currentTrackUris.length === 0) return;
+document.getElementById("clearBtn").addEventListener("click", () => {
+    localStorage.clear();
+    location.reload();
+});
 
-    btn.innerText = "⏳ プレイリスト作成中...";
-    btn.disabled = true;
-
+// --- 保存機能 ---
+window.savePlaylist = async function(btn) {
+    const token = localStorage.getItem("spotify_access_token");
+    btn.innerText = "⏳ 保存中...";
     try {
-        const createPlaylistResponse = await fetch(`${BASE_API_URL}/me/playlists`, {
+        const r1 = await fetch(`${BASE_API_URL}/me/playlists`, {
             method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + accessToken,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                name: currentPlaylistName,
-                public: false,
-                description: "Weather Beats アプリから自動生成されたプレイリスト"
-            })
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: currentPlaylistName, public: false })
         });
+        const d1 = await r1.json();
 
-        if (!createPlaylistResponse.ok) {
-            const errorData = await createPlaylistResponse.json();
-            throw new Error(`【Spotify生エラー (作成時)】\nStatus: ${errorData.error.status}\nMessage: ${errorData.error.message}`);
-        }
-
-        const playlistData = await createPlaylistResponse.json();
-        const playlistId = playlistData.id;
-        const playlistUrl = playlistData.external_urls.spotify; 
-
-        const addTracksResponse = await fetch(`${BASE_API_URL}/playlists/${playlistId}/items`, {
+        await fetch(`${BASE_API_URL}/playlists/${d1.id}/items`, {
             method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + accessToken,
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
             body: JSON.stringify({ uris: currentTrackUris })
         });
 
-        if (!addTracksResponse.ok) {
-            const trackErrorData = await addTracksResponse.json();
-            throw new Error(`【Spotify生エラー (曲追加時)】\nStatus: ${trackErrorData.error.status}\nMessage: ${trackErrorData.error.message}`);
-        }
-
-        btn.outerHTML = `
-            <a href="${playlistUrl}" target="_blank" class="btn" style="background-color: #1DB954; color: white; text-decoration: none; display: block; text-align: center; margin-top: 15px; box-shadow: 0 4px 15px rgba(29, 185, 84, 0.4);">
-                ✨ 保存完了！ここをタップしてプレイリストを開く
-            </a>
-        `;
-
-    } catch (error) {
-        console.error(error);
-        btn.innerText = "❌ 保存失敗";
-        btn.disabled = false;
-        alert(error.message); 
-    }
+        btn.outerHTML = `<a href="${d1.external_urls.spotify}" target="_blank" class="btn" style="background:#1DB954; color:white; text-decoration:none;">✨ 成功！開く</a>`;
+    } catch (e) { alert("失敗: " + e.message); btn.innerText = "❌ 失敗"; }
 };
-
-document.getElementById("clearBtn").addEventListener("click", () => {
-    localStorage.removeItem("spotify_access_token");
-    localStorage.removeItem("spotify_verifier");
-    alert("ブラウザの記憶をリセットしました！ページを再読み込みします。");
-    window.location.reload(); 
-});
