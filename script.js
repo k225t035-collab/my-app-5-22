@@ -90,7 +90,6 @@ async function searchMusic(weatherUrl) {
                 </div>`;
         });
 
-        // 🌟 修正ポイント：ボタンに自身（this）を渡して、後からリンクに変えられるようにする
         html += `<button class="btn btn-spotify" onclick='savePlaylist(this, "${cityName} Weather", ${JSON.stringify(trackUris)})'>💾 プレイリストを保存</button>`;
         resultDiv.innerHTML = html;
 
@@ -140,6 +139,21 @@ if (savedToken) {
         });
 }
 
+// 🌟 GPSボタンの処理（取得中のメッセージを追加）
+document.getElementById("gpsBtn").addEventListener("click", () => {
+    const loader = document.getElementById("loading");
+    document.getElementById("result").innerHTML = ""; // 以前の結果を消す
+    loader.innerText = "📍 現在地を取得中..."; 
+    loader.style.display = "block";
+
+    navigator.geolocation.getCurrentPosition(p => {
+        searchMusic(`${BASE_WEATHER_URL}lat=${p.coords.latitude}&lon=${p.coords.longitude}&appid=${WEATHER_API_KEY}&units=metric`);
+    }, (error) => {
+        loader.style.display = "none";
+        alert("位置情報の取得に失敗しました。ブラウザの位置情報許可がオンになっているか確認してください。");
+    });
+});
+
 document.getElementById("getWeatherBtn").addEventListener("click", () => {
     const city = document.getElementById("cityInput").value || "Kyoto";
     searchMusic(`${BASE_WEATHER_URL}q=${city}&appid=${WEATHER_API_KEY}&units=metric`);
@@ -151,13 +165,6 @@ document.getElementById("tripBtn").addEventListener("click", () => {
     searchMusic(`${BASE_WEATHER_URL}q=${city}&appid=${WEATHER_API_KEY}&units=metric`);
 });
 
-document.getElementById("gpsBtn").addEventListener("click", () => {
-    navigator.geolocation.getCurrentPosition(p => {
-        searchMusic(`${BASE_WEATHER_URL}lat=${p.coords.latitude}&lon=${p.coords.longitude}&appid=${WEATHER_API_KEY}&units=metric`);
-    });
-});
-
-// 🌟 修正ポイント：保存処理後にそのまま自動でSpotifyを開く
 window.savePlaylist = async function(btn, name, uris) {
     const token = localStorage.getItem("spotify_access_token");
     const originalText = btn.innerText;
@@ -177,10 +184,7 @@ window.savePlaylist = async function(btn, name, uris) {
         
         const spotifyUrl = d1.external_urls.spotify;
         
-        // ボタンを「開く」リンクに置き換える
         btn.outerHTML = `<a href="${spotifyUrl}" target="_blank" class="btn btn-spotify" style="text-decoration:none; display:flex; justify-content:center; background:#1ed760; color:black;">✨ 成功！Spotifyで開く</a>`;
-        
-        // そのまま自動で別タブ（またはアプリ）で開く
         window.open(spotifyUrl, '_blank');
         
     } catch (e) { 
